@@ -35,6 +35,8 @@ export interface AttendanceLogItem {
   serverTime: Date;
   locationAddress: string;
   nearestLocationName: string;
+  latitude?: number | null;
+  longitude?: number | null;
   distanceMeters: number;
   isValidLocation: boolean;
   isLate: boolean;

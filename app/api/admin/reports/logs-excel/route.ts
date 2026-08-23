@@ -42,6 +42,8 @@ export async function GET(req: Request) {
       serverTime: a.serverTime,
       locationAddress: a.locationAddress || '',
       nearestLocationName: a.nearestLocationName || '',
+      latitude: a.latitude,
+      longitude: a.longitude,
       distanceMeters: a.distanceMeters || 0,
       isValidLocation: a.isValidLocation,
       isLate: a.isLate,
