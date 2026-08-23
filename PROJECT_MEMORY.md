@@ -10,6 +10,8 @@ Hệ thống Webapp chấm công nội bộ cho Caritas Đà Lạt với các t�
 6. **Môi trường vận hành**: Chạy Docker Compose trên NAS Synology, HTTPS, tích hợp hệ thống `caritasdalat.org` và Telegram Mini App / Bot nhắc việc.
 
 ## 🛠️ Công nghệ Đề xuất (Tech Stack)
+- **Repository**: [https://github.com/khoakhukho/chamcong](https://github.com/khoakhukho/chamcong)
+- **Branch**: `main`
 - **Framework**: Next.js 15 (App Router), React 19, TypeScript.
 - **Styling**: Tailwind CSS v4, Lucide Icons.
 - **Database & ORM**: Prisma ORM + SQLite (hoặc PostgreSQL), lưu trữ file DB trực tiếp trên Synology NAS.
