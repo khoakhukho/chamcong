@@ -661,6 +661,75 @@ export async function ensureDatabaseReady() {
       }
     }
 
+    // Ensure vnxkhoa user exists
+    const vnxkhoaExists = await prisma.user.findUnique({
+      where: { employeeCode: 'vnxkhoa' },
+    });
+    if (!vnxkhoaExists) {
+      const vnxPass = await bcrypt.hash('password123', 10);
+      const vnx = await prisma.user.create({
+        data: {
+          employeeCode: 'vnxkhoa',
+          fullName: 'Vũ Nguyễn Xuân Khoa',
+          passwordHash: vnxPass,
+          phone: '0933123456',
+          email: 'vnxkhoa@caritasdalat.org',
+          department: 'Ban Quản Trị & Dự Án',
+          role: 'ADMIN',
+          contractType: 'FULL_TIME',
+          annualLeaveBase: 12.0,
+          isActive: true,
+        },
+      });
+
+      // Assign vnxkhoa to PLD and SKTT
+      const pldProj = await prisma.project.findUnique({ where: { code: 'PLD' } });
+      const skttProj = await prisma.project.findUnique({ where: { code: 'SKTT' } });
+
+      if (pldProj) {
+        await prisma.projectMember.upsert({
+          where: { projectId_userId: { projectId: pldProj.id, userId: vnx.id } },
+          update: {},
+          create: { projectId: pldProj.id, userId: vnx.id, roleInProject: 'COORDINATOR' },
+        });
+      }
+      if (skttProj) {
+        await prisma.projectMember.upsert({
+          where: { projectId_userId: { projectId: skttProj.id, userId: vnx.id } },
+          update: {},
+          create: { projectId: skttProj.id, userId: vnx.id, roleInProject: 'COORDINATOR' },
+        });
+      }
+
+      // Add Sample Leave Request & Notification for vnxkhoa
+      const today = new Date();
+      const pastDate1 = new Date(today.getTime() - 2 * 86400000);
+      const pastDate2 = new Date(today.getTime() - 1 * 86400000);
+      await prisma.leaveRequest.create({
+        data: {
+          userId: vnx.id,
+          leaveType: 'COMPENSATORY',
+          fromDate: pastDate1,
+          toDate: pastDate2,
+          daysCount: 1.0,
+          reason: 'Nghỉ bù ngày thứ Bảy trực hỗ trợ cộng đồng tại buôn làng',
+          status: 'APPROVED',
+          reviewNotes: 'Đồng ý duyệt nghỉ bù ngày làm việc cuối tuần thực địa.',
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: vnx.id,
+          title: '✓ Đơn xin nghỉ đã được DUYỆT',
+          content: 'Nghỉ bù (1 ngày) của bạn đã được phê duyệt bởi Quản Trị Viên Caritas. Ý kiến: "Đồng ý duyệt nghỉ bù ngày làm việc cuối tuần thực địa."',
+          type: 'LEAVE_APPROVED',
+          link: '/employee/requests',
+          isRead: false,
+        },
+      });
+    }
+
     globalForPrisma.isDbInitialized = true;
   } catch (err) {
     console.error('ensureDatabaseReady error:', err);
