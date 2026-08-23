@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import EmployeeHeader from '@/components/layout/EmployeeHeader';
-import { Calendar, Clock, MapPin, CheckCircle, AlertTriangle, Eye, X, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, Eye, X, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDateTimeVN, formatTimeVN, formatDateVN } from '@/lib/utils';
 
 export default function EmployeeHistoryPage() {
@@ -141,24 +141,18 @@ export default function EmployeeHistoryPage() {
                 <div className="text-xs space-y-1 text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                   <div className="flex items-start space-x-1.5">
                     <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                    <span className="truncate">
-                      {item.nearestLocationName || item.locationAddress || 'Vị trí đã lưu'}
+                    <span className="truncate font-semibold">
+                      {item.locationAddress || item.nearestLocationName || 'Vị trí đã lưu'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] font-semibold text-slate-500 flex items-center space-x-1">
-                      <span>📍 Tọa độ GPS đã ghi nhận</span>
+                    <span className="text-[10px] font-semibold text-emerald-700 flex items-center space-x-1">
+                      <span>✓ Đã xác thực tọa độ GPS</span>
                     </span>
-
-                    {item.isLate && (
-                      <span className="text-[10px] font-bold text-amber-700">
-                        Đi muộn {item.lateMinutes} phút
-                      </span>
-                    )}
-                    {item.isEarlyLeave && (
-                      <span className="text-[10px] font-bold text-amber-700">
-                        Về sớm {item.earlyMinutes} phút
+                    {item.notes && (
+                      <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
+                        {item.notes}
                       </span>
                     )}
                   </div>

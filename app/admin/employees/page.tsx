@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Edit2, Lock, CheckCircle2, XCircle, Search, KeyRound } from 'lucide-react';
-import { formatDateVN } from '@/lib/utils';
+import {
+  Users,
+  UserPlus,
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Briefcase,
+  Palmtree,
+  Shield,
+  BadgePercent,
+} from 'lucide-react';
+import { formatDateVN, getContractTypeLabel, getRoleLabel } from '@/lib/utils';
 
 export default function AdminEmployeesPage() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -21,8 +33,9 @@ export default function AdminEmployeesPage() {
   const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('Ban Y Tế Bác Ái');
   const [role, setRole] = useState('EMPLOYEE');
+  const [contractType, setContractType] = useState('FULL_TIME');
+  const [annualLeaveBase, setAnnualLeaveBase] = useState('12');
   const [isActive, setIsActive] = useState(true);
-  const [telegramId, setTelegramId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -55,8 +68,9 @@ export default function AdminEmployeesPage() {
     setEmail('');
     setDepartment('Ban Y Tế Bác Ái');
     setRole('EMPLOYEE');
+    setContractType('FULL_TIME');
+    setAnnualLeaveBase('12');
     setIsActive(true);
-    setTelegramId('');
     setIsModalOpen(true);
     setMsg(null);
   };
@@ -68,12 +82,30 @@ export default function AdminEmployeesPage() {
     setPassword(''); // leave blank if no change
     setPhone(emp.phone || '');
     setEmail(emp.email || '');
-    setDepartment(emp.department || 'Hành Chính');
-    setRole(emp.role);
+    setDepartment(emp.department || 'Ban Y Tế Bác Ái');
+    setRole(emp.role || 'EMPLOYEE');
+    setContractType(emp.contractType || 'FULL_TIME');
+    setAnnualLeaveBase(String(emp.annualLeaveBase ?? 12));
     setIsActive(emp.isActive);
-    setTelegramId(emp.telegramId || '');
     setIsModalOpen(true);
     setMsg(null);
+  };
+
+  const handleDelete = async (emp: any) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa tài khoản nhân viên "${emp.fullName}" (${emp.employeeCode}) không?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/employees?id=${emp.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await loadEmployees();
+    } catch (err: any) {
+      alert('Lỗi xóa nhân viên: ' + err.message);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -95,8 +127,9 @@ export default function AdminEmployeesPage() {
             email,
             department,
             role,
+            contractType,
+            annualLeaveBase: parseFloat(annualLeaveBase),
             isActive,
-            telegramId,
           }),
         });
         const data = await res.json();
@@ -114,7 +147,8 @@ export default function AdminEmployeesPage() {
             email,
             department,
             role,
-            telegramId,
+            contractType,
+            annualLeaveBase: parseFloat(annualLeaveBase),
           }),
         });
         const data = await res.json();
@@ -143,10 +177,10 @@ export default function AdminEmployeesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight">
-            Quản Lý Hồ Sơ Nhân Sự
+            Quản Lý Hồ Sơ Nhân Sự Caritas Đà Lạt
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-1">
-            Thêm mới, điều chỉnh phòng ban, vai trò và phân quyền nhân viên
+            Phân loại hợp đồng (Toàn thời gian / Bán thời gian / Khoán), phân quyền Kế toán / Quản trị và cấp phát ngày phép
           </p>
         </div>
 
@@ -155,7 +189,7 @@ export default function AdminEmployeesPage() {
           className="self-start sm:self-auto py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center space-x-2 transition shadow-lg shadow-red-950/40"
         >
           <UserPlus className="w-4 h-4" />
-          <span>Thêm Nhân Viên Mới</span>
+          <span>Thêm Nhân Sự Mới</span>
         </button>
       </div>
 
@@ -179,8 +213,9 @@ export default function AdminEmployeesPage() {
               <tr>
                 <th className="px-5 py-3.5">Mã NV</th>
                 <th className="px-5 py-3.5">Họ và Tên</th>
-                <th className="px-5 py-3.5">Phòng ban / Bộ phận</th>
-                <th className="px-5 py-3.5">Liên hệ</th>
+                <th className="px-5 py-3.5">Phòng ban / Ban chuyên trách</th>
+                <th className="px-5 py-3.5">Loại hình làm việc</th>
+                <th className="px-5 py-3.5">Phép năm</th>
                 <th className="px-5 py-3.5">Vai trò</th>
                 <th className="px-5 py-3.5">Trạng thái</th>
                 <th className="px-5 py-3.5 text-right">Thao tác</th>
@@ -189,14 +224,14 @@ export default function AdminEmployeesPage() {
             <tbody className="divide-y divide-slate-800/60 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
-                    Đang tải danh sách...
+                  <td colSpan={8} className="px-5 py-8 text-center text-slate-500">
+                    Đang tải danh sách nhân sự...
                   </td>
                 </tr>
               ) : filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
-                    Không tìm thấy nhân viên nào phù hợp.
+                  <td colSpan={8} className="px-5 py-8 text-center text-slate-500">
+                    Không tìm thấy nhân sự nào phù hợp.
                   </td>
                 </tr>
               ) : (
@@ -206,26 +241,41 @@ export default function AdminEmployeesPage() {
                       {emp.employeeCode}
                     </td>
                     <td className="px-5 py-3.5 font-bold text-white">
-                      {emp.fullName}
+                      <div>{emp.fullName}</div>
+                      <div className="text-[11px] text-slate-500 font-normal">{emp.phone || emp.email || '-'}</div>
                     </td>
                     <td className="px-5 py-3.5 text-slate-300">
-                      {emp.department || 'Chưa phân ban'}
+                      {emp.department || 'Chung'}
                     </td>
-                    <td className="px-5 py-3.5 text-[11px] text-slate-400">
-                      <div>{emp.phone || '-'}</div>
-                      <div className="text-slate-500">{emp.email || '-'}</div>
+                    <td className="px-5 py-3.5">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          emp.contractType === 'FULL_TIME'
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            : emp.contractType === 'PART_TIME'
+                            ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                            : 'bg-sky-950 text-sky-400 border border-sky-800'
+                        }`}
+                      >
+                        {getContractTypeLabel(emp.contractType)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 font-mono font-bold text-slate-300">
+                      {emp.annualLeaveBase ?? 12} ngày/năm
                     </td>
                     <td className="px-5 py-3.5">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           emp.role === 'ADMIN'
                             ? 'bg-red-950 text-red-400 border border-red-800'
+                            : emp.role === 'ACCOUNTANT'
+                            ? 'bg-purple-950 text-purple-400 border border-purple-800'
                             : emp.role === 'MANAGER'
                             ? 'bg-amber-950 text-amber-400 border border-amber-800'
                             : 'bg-slate-800 text-slate-300 border border-slate-700'
                         }`}
                       >
-                        {emp.role}
+                        {getRoleLabel(emp.role)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
@@ -240,13 +290,19 @@ export default function AdminEmployeesPage() {
                         <span>{emp.isActive ? 'Hoạt động' : 'Tạm khóa'}</span>
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="px-5 py-3.5 text-right space-x-2">
                       <button
                         onClick={() => openEditModal(emp)}
-                        className="py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold inline-flex items-center space-x-1.5 transition"
+                        className="py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold inline-flex items-center space-x-1 transition"
                       >
                         <Edit2 className="w-3 h-3" />
                         <span>Sửa</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(emp)}
+                        className="py-1 px-2 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 text-xs font-semibold inline-flex items-center transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </td>
                   </tr>
@@ -262,7 +318,7 @@ export default function AdminEmployeesPage() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-200">
             <h2 className="text-base font-bold text-white border-b border-slate-800 pb-3">
-              {editingEmployee ? `Chỉnh Sửa Nhân Viên: ${editingEmployee.employeeCode}` : 'Thêm Nhân Viên Mới'}
+              {editingEmployee ? `Chỉnh Sửa Nhân Sự: ${editingEmployee.employeeCode}` : 'Thêm Nhân Sự Mới'}
             </h2>
 
             {msg && (
@@ -278,11 +334,11 @@ export default function AdminEmployeesPage() {
                   <input
                     type="text"
                     value={employeeCode}
-                    onChange={(e) => setEmployeeCode(e.target.value)}
+                    onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
                     disabled={!!editingEmployee}
                     required
                     placeholder="VD: NV004"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-hidden focus:border-red-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono uppercase font-bold focus:outline-hidden focus:border-red-500 disabled:opacity-50"
                   />
                 </div>
 
@@ -315,7 +371,7 @@ export default function AdminEmployeesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-400 mb-1">PHÒNG BAN / BAN CHUYÊN MÔN</label>
+                  <label className="block font-semibold text-slate-400 mb-1">PHÒNG BAN / BAN CHUYÊN TRÁCH</label>
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
@@ -327,9 +383,31 @@ export default function AdminEmployeesPage() {
                     <option value="Ban Học Bổng & Trẻ Em">Ban Học Bổng & Trẻ Em</option>
                     <option value="Ban Truyền Thông">Ban Truyền Thông</option>
                     <option value="Ban Hành Chính & Kế Toán">Ban Hành Chính & Kế Toán</option>
+                    <option value="Cơ sở Bác Ái Bảo Lộc">Cơ sở Bác Ái Bảo Lộc</option>
                   </select>
                 </div>
 
+                <div>
+                  <label className="block font-semibold text-slate-400 mb-1">LOẠI HÌNH LÀM VIỆC</label>
+                  <select
+                    value={contractType}
+                    onChange={(e) => {
+                      const ct = e.target.value;
+                      setContractType(ct);
+                      if (ct === 'FULL_TIME') setAnnualLeaveBase('12');
+                      else if (ct === 'PART_TIME') setAnnualLeaveBase('6');
+                      else setAnnualLeaveBase('0');
+                    }}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-hidden focus:border-red-500 font-semibold"
+                  >
+                    <option value="FULL_TIME">Toàn thời gian (Hành chính)</option>
+                    <option value="PART_TIME">Bán thời gian (Theo ca/giờ)</option>
+                    <option value="CONTRACT">Khoán việc / Cộng đồng</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-400 mb-1">VAI TRÒ TRUY CẬP</label>
                   <select
@@ -338,9 +416,23 @@ export default function AdminEmployeesPage() {
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-hidden focus:border-red-500"
                   >
                     <option value="EMPLOYEE">Nhân Viên (Chấm công)</option>
+                    <option value="ACCOUNTANT">Kế Toán (Xuất báo cáo & Quản trị)</option>
                     <option value="MANAGER">Quản Lý (Trưởng ban)</option>
-                    <option value="ADMIN">Quản Trị Viên (Admin)</option>
+                    <option value="ADMIN">Quản Trị Viên (Admin tối cao)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-400 mb-1">ĐỊNH MỨC PHÉP NĂM (NGÀY)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="30"
+                    value={annualLeaveBase}
+                    onChange={(e) => setAnnualLeaveBase(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-hidden focus:border-red-500 font-mono font-bold"
+                  />
                 </div>
               </div>
 

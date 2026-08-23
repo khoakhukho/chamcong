@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import EmployeeHeader from '@/components/layout/EmployeeHeader';
 import CameraCapture from '@/components/camera/CameraCapture';
 import {
@@ -20,6 +21,8 @@ import {
   WifiOff,
   RefreshCw,
   CloudUpload,
+  Palmtree,
+  CalendarCheck2,
 } from 'lucide-react';
 import { formatDateTimeVN, formatTimeVN } from '@/lib/utils';
 import { LocationTarget } from '@/lib/geofencing';
@@ -28,11 +31,13 @@ import {
   getPendingOfflineAttendances,
   syncAllOfflineAttendances,
 } from '@/lib/offline-store';
+import { LeaveBalanceSummary } from '@/lib/leave-calculator';
 
 export default function ChamCongPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [locations, setLocations] = useState<LocationTarget[]>([]);
+  const [balances, setBalances] = useState<LeaveBalanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Connectivity & Offline Sync State
@@ -80,12 +85,11 @@ export default function ChamCongPage() {
     }
   }, [isSyncing, refreshPendingCount]);
 
-  // Fetch Session, Locations, Today Status
+  // Fetch Session, Locations, Today Status & Leave Balances
   const loadData = useCallback(async () => {
     try {
       const meRes = await fetch('/api/auth/me');
       if (!meRes.ok) {
-        // Only redirect to login if online and rejected
         if (navigator.onLine) {
           router.push('/login');
           return;
@@ -108,6 +112,13 @@ export default function ChamCongPage() {
         const sData = await statusRes.json();
         setTodayStatus(sData);
       }
+
+      // Balances
+      const balRes = await fetch('/api/employee/leave-balance');
+      if (balRes.ok) {
+        const balData = await balRes.json();
+        setBalances(balData.balances);
+      }
     } catch (err) {
       console.error('loadData error (may be offline):', err);
     } finally {
@@ -116,7 +127,6 @@ export default function ChamCongPage() {
   }, [router]);
 
   useEffect(() => {
-    // Initial online status
     if (typeof window !== 'undefined') {
       setIsOnline(navigator.onLine);
       refreshPendingCount();
@@ -124,7 +134,6 @@ export default function ChamCongPage() {
 
     loadData();
 
-    // Online / Offline Listeners
     const handleOnline = () => {
       setIsOnline(true);
       handleTriggerSync();
@@ -136,7 +145,6 @@ export default function ChamCongPage() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Clock ticker
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(
@@ -165,7 +173,6 @@ export default function ChamCongPage() {
 
     const capturedTimestamp = new Date().toISOString();
 
-    // If device is offline, save directly to IndexedDB
     if (!navigator.onLine) {
       try {
         await saveOfflineAttendance({
@@ -192,7 +199,6 @@ export default function ChamCongPage() {
       return;
     }
 
-    // If online, attempt server post, fallback to IndexedDB if network drops
     try {
       const res = await fetch('/api/attendance/check-in', {
         method: 'POST',
@@ -293,6 +299,28 @@ export default function ChamCongPage() {
           </div>
         )}
 
+        {/* Leave Balance Overview Quick Link Card */}
+        {balances && (
+          <Link
+            href="/employee/requests"
+            className="p-3.5 rounded-2xl bg-white border border-slate-200 text-xs flex items-center justify-between shadow-xs hover:border-red-400 transition"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-1.5 text-emerald-700 font-bold">
+                <Palmtree className="w-4 h-4" />
+                <span>Phép năm còn: {balances.annualLeaveRemaining} ngày</span>
+              </div>
+              {balances.compensatoryAvailableThisWeek > 0 && (
+                <div className="flex items-center space-x-1 text-sky-700 font-bold border-l border-slate-200 pl-2">
+                  <CalendarCheck2 className="w-3.5 h-3.5" />
+                  <span>Nghỉ bù: {balances.compensatoryAvailableThisWeek} ngày</span>
+                </div>
+              )}
+            </div>
+            <span className="text-[11px] text-red-600 font-bold">Xem đơn &rarr;</span>
+          </Link>
+        )}
+
         {/* Realtime Live Clock Card */}
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-3xl p-6 shadow-xl border border-slate-800 text-center relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-36 h-36 bg-red-600/20 rounded-full blur-2xl pointer-events-none" />
@@ -376,13 +404,7 @@ export default function ChamCongPage() {
                     {formatTimeVN(checkInRecord.serverTime)}
                   </div>
                   <div className="text-[11px] mt-1 space-y-0.5">
-                    {checkInRecord.isLate ? (
-                      <span className="text-amber-700 font-bold block">
-                        Trễ {checkInRecord.lateMinutes} phút
-                      </span>
-                    ) : (
-                      <span className="text-emerald-700 font-bold block">✓ Đúng giờ</span>
-                    )}
+                    <span className="text-emerald-700 font-bold block">✓ Đã vào ca</span>
                     <span className="text-slate-500 block truncate text-[10px]">
                       {checkInRecord.locationAddress || 'Đã ghi nhận GPS'}
                     </span>
@@ -413,13 +435,7 @@ export default function ChamCongPage() {
                     {formatTimeVN(checkOutRecord.serverTime)}
                   </div>
                   <div className="text-[11px] mt-1 space-y-0.5">
-                    {checkOutRecord.isEarlyLeave ? (
-                      <span className="text-amber-700 font-bold block">
-                        Về sớm {checkOutRecord.earlyMinutes} phút
-                      </span>
-                    ) : (
-                      <span className="text-blue-700 font-bold block">✓ Hoàn thành ca</span>
-                    )}
+                    <span className="text-blue-700 font-bold block">✓ Đã ra ca</span>
                     <span className="text-slate-500 block truncate text-[10px]">
                       {checkOutRecord.locationAddress || 'Đã ghi nhận GPS'}
                     </span>

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { ShieldCheck, User, Lock, ArrowRight, AlertCircle, UserPlus } from 'lucide-react';
 
 export default function LoginPage() {
   const [employeeCode, setEmployeeCode] = useState('');
@@ -29,7 +30,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Đăng nhập không thành công');
       }
 
-      if (data.user.role === 'ADMIN') {
+      if (data.user.role === 'ADMIN' || data.user.role === 'ACCOUNTANT') {
         router.push('/admin/dashboard');
       } else {
         router.push('/chamcong');
@@ -40,11 +41,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const setDemoAccount = (code: string, pass: string) => {
-    setEmployeeCode(code);
-    setPassword(pass);
   };
 
   return (
@@ -89,9 +85,9 @@ export default function LoginPage() {
                 type="text"
                 value={employeeCode}
                 onChange={(e) => setEmployeeCode(e.target.value)}
-                placeholder="VD: NV001 hoặc ADMIN"
+                placeholder="VD: NV001, KETOAN hoặc ADMIN"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-800 focus:border-red-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-hidden transition"
+                className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-800 focus:border-red-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-hidden transition font-mono uppercase font-bold"
               />
             </div>
           </div>
@@ -125,32 +121,23 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Quick Test Demo Account Shortcuts */}
+        {/* Register Account Link */}
         <div className="mt-8 pt-6 border-t border-slate-900 text-center">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
-            Tài khoản kiểm thử nhanh:
+          <p className="text-xs text-slate-400">
+            Chưa có tài khoản nhân sự?{' '}
+            <Link
+              href="/register"
+              className="text-red-400 font-bold hover:underline inline-flex items-center space-x-1 ml-1"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Đăng ký mới</span>
+            </Link>
           </p>
-          <div className="flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDemoAccount('ADMIN', 'admin123')}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-medium text-slate-300 transition"
-            >
-              👑 Quản trị: <span className="text-red-400 font-bold">ADMIN</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoAccount('NV001', '123456')}
-              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-medium text-slate-300 transition"
-            >
-              👤 Nhân viên: <span className="text-emerald-400 font-bold">NV001</span>
-            </button>
-          </div>
         </div>
       </div>
 
       <div className="mt-6 text-center text-xs text-slate-500">
-        &copy; {new Date().getFullYear()} Caritas Giáo Phận Đà Lạt. All rights reserved.
+        &copy; {new Date().getFullYear()} Caritas Giáo Phận Đà Lạt. Hệ thống Chấm công nội bộ.
       </div>
     </div>
   );

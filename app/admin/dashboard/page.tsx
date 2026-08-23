@@ -7,7 +7,7 @@ import {
   UserCheck,
   UserX,
   Clock,
-  AlertTriangle,
+  Briefcase,
   FileText,
   MapPin,
   RefreshCw,
@@ -15,7 +15,7 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react';
-import { formatDateTimeVN, formatTimeVN } from '@/lib/utils';
+import { formatDateTimeVN, formatTimeVN, getContractTypeLabel } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -51,10 +51,10 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight">
-            Tổng Quan Thời Gian Thực
+            Tổng Quan Điều Hành Chấm Công Caritas Đà Lạt
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-1">
-            Theo dõi tình hình điểm danh, đi muộn và đơn từ trong ngày hôm nay
+            Theo dõi nhật ký quẹt thẻ, hiện diện thực địa và đơn từ trong ngày hôm nay
           </p>
         </div>
 
@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {/* Total Employees */}
         <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-xs">
@@ -85,49 +85,37 @@ export default function AdminDashboardPage() {
         {/* Checked In */}
         <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800/60 space-y-1">
           <div className="flex items-center justify-between text-emerald-400 text-xs font-semibold">
-            <span>Đã Check-in</span>
+            <span>Đã quẹt thẻ hôm nay</span>
             <UserCheck className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-black text-emerald-300 font-mono">
             {stats ? stats.checkedInCount : '--'}
           </div>
-          <div className="text-[10px] text-emerald-400/80">Hôm nay</div>
+          <div className="text-[10px] text-emerald-400/80">Nhân sự có mặt</div>
         </div>
 
         {/* Not Checked In */}
         <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/60 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-xs">
-            <span>Chưa vào ca</span>
+            <span>Chưa quẹt thẻ</span>
             <UserX className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-2xl font-black text-slate-300 font-mono">
             {stats ? stats.notCheckedInCount : '--'}
           </div>
-          <div className="text-[10px] text-slate-400">Cần theo dõi</div>
-        </div>
-
-        {/* Late Count */}
-        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 space-y-1">
-          <div className="flex items-center justify-between text-amber-400 text-xs font-semibold">
-            <span>Đi trễ</span>
-            <Clock className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-2xl font-black text-amber-300 font-mono">
-            {stats ? stats.lateCount : '--'}
-          </div>
-          <div className="text-[10px] text-amber-400/80">Vượt giờ cho phép</div>
+          <div className="text-[10px] text-slate-400">Chưa ghi nhận vào ca</div>
         </div>
 
         {/* Total Attendance Today */}
         <div className="p-4 rounded-2xl bg-teal-950/40 border border-teal-800/60 space-y-1">
           <div className="flex items-center justify-between text-teal-400 text-xs font-semibold">
-            <span>Tổng lượt quẹt</span>
+            <span>Lượt quẹt GPS</span>
             <MapPin className="w-4 h-4 text-teal-400" />
           </div>
           <div className="text-2xl font-black text-teal-300 font-mono">
             {recentAttendances ? recentAttendances.length : '--'}
           </div>
-          <div className="text-[10px] text-teal-400/80">Có định vị GPS</div>
+          <div className="text-[10px] text-teal-400/80">Kèm ảnh & tọa độ</div>
         </div>
 
         {/* Pending Requests */}
@@ -173,10 +161,10 @@ export default function AdminDashboardPage() {
               <tr>
                 <th className="px-5 py-3.5">Nhân viên</th>
                 <th className="px-5 py-3.5">Phòng ban</th>
+                <th className="px-5 py-3.5">Loại hình</th>
                 <th className="px-5 py-3.5">Loại quẹt</th>
-                <th className="px-5 py-3.5">Thời gian</th>
+                <th className="px-5 py-3.5">Thời gian thực tế</th>
                 <th className="px-5 py-3.5">Vị trí GPS / Địa chỉ</th>
-                <th className="px-5 py-3.5">Tình trạng</th>
                 <th className="px-5 py-3.5 text-center">Ảnh Watermark</th>
               </tr>
             </thead>
@@ -200,6 +188,11 @@ export default function AdminDashboardPage() {
                       {item.user?.department || 'Chung'}
                     </td>
                     <td className="px-5 py-3.5">
+                      <span className="text-[10px] text-slate-400">
+                        {getContractTypeLabel(item.user?.contractType)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
                       <span
                         className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
                           item.checkType === 'IN'
@@ -210,18 +203,8 @@ export default function AdminDashboardPage() {
                         {item.checkType === 'IN' ? 'Vào ca' : 'Ra ca'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-slate-200">
-                      <div>{formatTimeVN(item.serverTime)}</div>
-                      {item.isLate && (
-                        <span className="text-[10px] text-amber-400 font-bold block">
-                          Trễ {item.lateMinutes}p
-                        </span>
-                      )}
-                      {item.isEarlyLeave && (
-                        <span className="text-[10px] text-amber-400 font-bold block">
-                          Về sớm {item.earlyMinutes}p
-                        </span>
-                      )}
+                    <td className="px-5 py-3.5 font-mono text-slate-200 font-bold">
+                      {formatTimeVN(item.serverTime)}
                     </td>
                     <td className="px-5 py-3.5 text-slate-300 max-w-xs">
                       <div className="truncate font-semibold">
@@ -232,11 +215,6 @@ export default function AdminDashboardPage() {
                           {item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}
                         </div>
                       )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
-                        {item.latitude ? '✓ Đã lấy GPS' : 'Không có GPS'}
-                      </span>
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       {item.imagePath ? (

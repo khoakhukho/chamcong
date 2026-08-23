@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user || user.role === 'EMPLOYEE') {
-      return NextResponse.json({ error: 'Không có quyền xuất báo cáo' }, { status: 403 });
+      return NextResponse.json({ error: 'Không có quyền xuất báo cáo kế toán' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -43,19 +43,19 @@ export async function GET(req: Request) {
       },
     });
 
-    // 4. Transform data for matrix
+    // 4. Transform data for synthesis sheet
     const reportData: MonthlyAttendanceData = {
       month,
       year,
       totalDays,
-      users: employees.map((emp) => {
+      users: employees.map((emp: any) => {
         const empAttendances = attendances.filter((a) => a.userId === emp.id);
         const empLeaves = leaveRequests.filter((l) => l.userId === emp.id);
 
         let totalWorkDays = 0;
+        let totalCompensatoryDays = 0;
         let totalPaidLeave = 0;
-        let totalLateCount = 0;
-        let totalLateMinutes = 0;
+        let totalWorkedHours = 0;
 
         const days = [];
 
@@ -73,37 +73,46 @@ export async function GET(req: Request) {
           const checkOut = dayAtts.find((a) => a.checkType === 'OUT');
 
           // Check leave on this day
-          const leaveOnDay = empLeaves.find(
-            (l) => dayStart >= new Date(l.fromDate.setHours(0,0,0,0)) && dayStart <= new Date(l.toDate.setHours(23,59,59,999))
-          );
+          const leaveOnDay = empLeaves.find((l) => {
+            const lStart = new Date(l.fromDate);
+            lStart.setHours(0, 0, 0, 0);
+            const lEnd = new Date(l.toDate);
+            lEnd.setHours(23, 59, 59, 999);
+            return dayStart >= lStart && dayStart <= lEnd;
+          });
 
           let symbol = '';
+          let workedHours = 0;
+
           if (checkIn && checkOut) {
             symbol = 'X';
             totalWorkDays += 1;
+            const diffMs = new Date(checkOut.serverTime).getTime() - new Date(checkIn.serverTime).getTime();
+            workedHours = Math.max(0, Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10);
+            totalWorkedHours += workedHours;
           } else if (checkIn || checkOut) {
             symbol = '1/2';
             totalWorkDays += 0.5;
+            workedHours = 4.0; // Half day default
+            totalWorkedHours += workedHours;
           } else if (leaveOnDay) {
-            if (leaveOnDay.leaveType === 'ANNUAL') {
+            if (leaveOnDay.leaveType === 'COMPENSATORY') {
+              symbol = 'NB';
+              totalCompensatoryDays += 1;
+            } else if (leaveOnDay.leaveType === 'ANNUAL') {
               symbol = 'P';
               totalPaidLeave += 1;
             } else if (leaveOnDay.leaveType === 'SICK') {
               symbol = 'Ô';
-            } else if (leaveOnDay.leaveType === 'UNPAID') {
+            } else if (leaveOnDay.leaveType === 'PERSONAL') {
               symbol = 'Ro';
+              totalPaidLeave += 1;
+            } else if (leaveOnDay.leaveType === 'UNPAID') {
+              symbol = 'KP';
             } else {
               symbol = 'P';
               totalPaidLeave += 1;
             }
-          } else if (dayOfWeek !== 0 && dayOfWeek !== 6 && dateObj < new Date()) {
-            // Past weekday without attendance
-            symbol = '';
-          }
-
-          if (checkIn?.isLate) {
-            totalLateCount += 1;
-            totalLateMinutes += checkIn.lateMinutes;
           }
 
           days.push({
@@ -112,8 +121,7 @@ export async function GET(req: Request) {
             symbol,
             inTime: checkIn ? checkIn.serverTime.toISOString() : undefined,
             outTime: checkOut ? checkOut.serverTime.toISOString() : undefined,
-            isLate: checkIn?.isLate,
-            lateMinutes: checkIn?.lateMinutes,
+            workedHours,
           });
         }
 
@@ -122,18 +130,19 @@ export async function GET(req: Request) {
           employeeCode: emp.employeeCode,
           fullName: emp.fullName,
           department: emp.department,
+          contractType: emp.contractType || 'FULL_TIME',
           days,
           totalWorkDays,
+          totalCompensatoryDays,
           totalPaidLeave,
-          totalLateCount,
-          totalLateMinutes,
+          totalWorkedHours: Math.round(totalWorkedHours * 10) / 10,
         };
       }),
     };
 
     const excelBuffer = await generateMonthlyExcelReport(reportData);
 
-    const fileName = `Bang_Cham_Cong_Thang_${month}_${year}_Caritas_Dalat.xlsx`;
+    const fileName = `Bang_Tong_Hop_Cham_Cong_Thang_${month}_${year}_Caritas_Dalat.xlsx`;
 
     return new NextResponse(new Uint8Array(excelBuffer), {
       status: 200,

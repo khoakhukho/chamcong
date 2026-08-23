@@ -17,7 +17,10 @@ model User {
   phone            String?
   email            String?
   department       String?        // e.g., Ban Giám Đốc, Ban Y Tế, Ban Khuyết Tật, Ban Học Bổng, Hành Chính
-  role             String         @default("EMPLOYEE") // "ADMIN", "MANAGER", "EMPLOYEE"
+  role             String         @default("EMPLOYEE") // "ADMIN", "ACCOUNTANT", "MANAGER", "EMPLOYEE"
+  contractType     String         @default("FULL_TIME") // "FULL_TIME", "PART_TIME", "CONTRACT"
+  joinDate         DateTime       @default(now())
+  annualLeaveBase  Float          @default(12.0)
   telegramId       String?        @unique
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
@@ -83,7 +86,7 @@ model LeaveRequest {
   id           Int       @id @default(autoincrement())
   userId       Int
   user         User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
-  leaveType    String    // "ANNUAL", "SICK", "UNPAID", "LATE_EXCUSE"
+  leaveType    String    // "ANNUAL", "COMPENSATORY", "SICK", "PERSONAL", "UNPAID"
   fromDate     DateTime
   toDate       DateTime
   daysCount    Float     @default(1.0)

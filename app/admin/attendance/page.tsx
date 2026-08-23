@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
-import { formatDateTimeVN, formatTimeVN, formatDateVN } from '@/lib/utils';
+import { formatDateTimeVN, formatTimeVN, formatDateVN, getContractTypeLabel } from '@/lib/utils';
 
 export default function AdminAttendancePage() {
   const [attendances, setAttendances] = useState<any[]>([]);
@@ -23,7 +23,6 @@ export default function AdminAttendancePage() {
   const [dateStr, setDateStr] = useState<string>(new Date().toISOString().split('T')[0]);
   const [department, setDepartment] = useState('ALL');
   const [checkType, setCheckType] = useState('ALL');
-  const [status, setStatus] = useState('ALL');
 
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
@@ -34,7 +33,6 @@ export default function AdminAttendancePage() {
       if (dateStr) params.append('date', dateStr);
       if (department !== 'ALL') params.append('department', department);
       if (checkType !== 'ALL') params.append('checkType', checkType);
-      if (status !== 'ALL') params.append('status', status);
 
       const res = await fetch(`/api/admin/attendance?${params.toString()}`);
       if (res.ok) {
@@ -46,7 +44,7 @@ export default function AdminAttendancePage() {
     } finally {
       setLoading(false);
     }
-  }, [dateStr, department, checkType, status]);
+  }, [dateStr, department, checkType]);
 
   useEffect(() => {
     loadLogs();
@@ -58,16 +56,16 @@ export default function AdminAttendancePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight">
-            Nhật Ký & Kho Ảnh Chấm Công
+            Nhật Ký & Kho Ảnh Chấm Công Caritas Đà Lạt
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-1">
-            Tra cứu toàn bộ log quẹt thẻ, vị trí GPS và kho ảnh đóng dấu watermark đối soát
+            Tra cứu toàn bộ log quẹt thẻ, vị trí GPS thực địa và kho ảnh đóng dấu watermark đối soát
           </p>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
         <div>
           <label className="block font-semibold text-slate-400 mb-1">CHỌN NGÀY</label>
           <input
@@ -91,6 +89,8 @@ export default function AdminAttendancePage() {
             <option value="Ban Khuyết Tật">Ban Khuyết Tật</option>
             <option value="Ban Học Bổng & Trẻ Em">Ban Học Bổng & Trẻ Em</option>
             <option value="Ban Hành Chính & Kế Toán">Ban Hành Chính & Kế Toán</option>
+            <option value="Ban Truyền Thông">Ban Truyền Thông</option>
+            <option value="Cơ sở Bác Ái Bảo Lộc">Cơ sở Bác Ái Bảo Lộc</option>
           </select>
         </div>
 
@@ -106,19 +106,6 @@ export default function AdminAttendancePage() {
             <option value="OUT">Ra ca (Check-out)</option>
           </select>
         </div>
-
-        <div>
-          <label className="block font-semibold text-slate-400 mb-1">TÌNH TRẠNG</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-hidden focus:border-red-500"
-          >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="LATE">Đi muộn (Trễ)</option>
-            <option value="EARLY">Về sớm</option>
-          </select>
-        </div>
       </div>
 
       {/* Logs Table */}
@@ -129,11 +116,11 @@ export default function AdminAttendancePage() {
               <tr>
                 <th className="px-5 py-3.5">Mã & Tên NV</th>
                 <th className="px-5 py-3.5">Phòng ban</th>
+                <th className="px-5 py-3.5">Loại hình</th>
                 <th className="px-5 py-3.5">Loại quẹt</th>
                 <th className="px-5 py-3.5">Thời gian thực tế</th>
-                <th className="px-5 py-3.5">Vị trí / Địa chỉ</th>
-                <th className="px-5 py-3.5">Tọa độ GPS</th>
-                <th className="px-5 py-3.5">Trạng thái ca</th>
+                <th className="px-5 py-3.5">Vị trí GPS / Địa chỉ</th>
+                <th className="px-5 py-3.5">Ghi chú</th>
                 <th className="px-5 py-3.5 text-center">Ảnh Watermark</th>
               </tr>
             </thead>
@@ -163,6 +150,11 @@ export default function AdminAttendancePage() {
                       {item.user?.department || 'Chung'}
                     </td>
                     <td className="px-5 py-3.5">
+                      <span className="text-[10px] text-slate-400">
+                        {getContractTypeLabel(item.user?.contractType)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
                       <span
                         className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
                           item.checkType === 'IN'
@@ -173,9 +165,9 @@ export default function AdminAttendancePage() {
                         {item.checkType === 'IN' ? 'Vào ca' : 'Ra ca'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-slate-200">
+                    <td className="px-5 py-3.5 font-mono text-slate-200 font-bold">
                       <div>{formatTimeVN(item.serverTime)}</div>
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-[10px] text-slate-500 font-normal">
                         {formatDateVN(item.serverTime)}
                       </div>
                     </td>
@@ -183,26 +175,14 @@ export default function AdminAttendancePage() {
                       <div className="truncate font-semibold">
                         {item.locationAddress || item.nearestLocationName || 'Vị trí ghi nhận'}
                       </div>
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-sky-400 text-[11px]">
-                      {item.latitude && item.longitude ? (
-                        <span>{item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}</span>
-                      ) : (
-                        <span className="text-slate-500">Chưa có GPS</span>
+                      {item.latitude && item.longitude && (
+                        <div className="text-[10px] text-sky-400 font-mono">
+                          {item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}
+                        </div>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 font-semibold">
-                      {item.isLate ? (
-                        <span className="text-amber-400 font-bold">
-                          Trễ {item.lateMinutes} phút
-                        </span>
-                      ) : item.isEarlyLeave ? (
-                        <span className="text-amber-400 font-bold">
-                          Về sớm {item.earlyMinutes} phút
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400">Đúng giờ</span>
-                      )}
+                    <td className="px-5 py-3.5 text-slate-400 max-w-[150px] truncate">
+                      {item.notes || '-'}
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       {item.imagePath ? (

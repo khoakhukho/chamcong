@@ -3,13 +3,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import EmployeeHeader from '@/components/layout/EmployeeHeader';
-import { FilePlus, FileText, Send, Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  FilePlus,
+  FileText,
+  Send,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Palmtree,
+  CalendarCheck2,
+  Sparkles,
+  Info,
+} from 'lucide-react';
 import { formatDateVN, getLeaveTypeLabel, getLeaveStatusBadge } from '@/lib/utils';
+import { LeaveBalanceSummary } from '@/lib/leave-calculator';
 
 export default function EmployeeRequestsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
+  const [balances, setBalances] = useState<LeaveBalanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -32,10 +46,18 @@ export default function EmployeeRequestsPage() {
       const meData = await meRes.json();
       setUser(meData.user);
 
+      // Load leave requests
       const res = await fetch('/api/employee/requests');
       if (res.ok) {
         const data = await res.json();
         setRequests(data.requests || []);
+      }
+
+      // Load balances
+      const balRes = await fetch('/api/employee/leave-balance');
+      if (balRes.ok) {
+        const balData = await balRes.json();
+        setBalances(balData.balances);
       }
     } catch (err) {
       console.error(err);
@@ -61,7 +83,7 @@ export default function EmployeeRequestsPage() {
           leaveType,
           fromDate,
           toDate,
-          daysCount,
+          daysCount: parseFloat(daysCount),
           reason,
         }),
       });
@@ -92,8 +114,8 @@ export default function EmployeeRequestsPage() {
         {/* Top Header & Toggle New Form Button */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Đơn Từ & Nghỉ Phép</h2>
-            <p className="text-xs text-slate-500 font-medium">Gửi đơn xin nghỉ phép, giải trình công</p>
+            <h2 className="text-base font-bold text-slate-900">Đơn Từ & Phép Nghỉ</h2>
+            <p className="text-xs text-slate-500 font-medium">Hạn mức phép năm & nghỉ bù cuối tuần</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -103,6 +125,52 @@ export default function EmployeeRequestsPage() {
             <span>{showForm ? 'Đóng form' : 'Tạo đơn mới'}</span>
           </button>
         </div>
+
+        {/* Leave Balances Cards */}
+        {balances && (
+          <div className="grid grid-cols-2 gap-3">
+            {/* Annual Leave Card */}
+            <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-200 flex flex-col justify-between">
+              <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 mb-1">
+                <Palmtree className="w-4 h-4 text-emerald-600" />
+                <span>PHÉP NĂM CÒN LẠI</span>
+              </div>
+              <div className="my-1">
+                <div className="text-2xl font-black text-emerald-600 font-mono">
+                  {balances.annualLeaveRemaining}{' '}
+                  <span className="text-xs font-normal text-slate-500">ngày</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  Đã dùng: {balances.annualLeaveUsed} / Tích lũy: {balances.annualLeaveAccruedTotal}
+                </div>
+              </div>
+              <div className="text-[9px] text-slate-400 border-t border-slate-100 pt-1.5 mt-1 flex items-center space-x-1">
+                <Info className="w-2.5 h-2.5 shrink-0 text-slate-400" />
+                <span>1 ngày/tháng (Reset 30/06)</span>
+              </div>
+            </div>
+
+            {/* Compensatory Leave Card */}
+            <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-200 flex flex-col justify-between">
+              <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 mb-1">
+                <CalendarCheck2 className="w-4 h-4 text-sky-600" />
+                <span>NGHỈ BÙ TUẦN NÀY</span>
+              </div>
+              <div className="my-1">
+                <div className="text-2xl font-black text-sky-600 font-mono">
+                  {balances.compensatoryAvailableThisWeek}{' '}
+                  <span className="text-xs font-normal text-slate-500">ngày</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  Làm T7/CN tuần trước: {balances.weekendWorkDaysPreviousWeek} ngày
+                </div>
+              </div>
+              <div className="text-[9px] text-amber-700 border-t border-slate-100 pt-1.5 mt-1 truncate">
+                Hạn nghỉ: Chủ Nhật tuần này
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         {msg && (
@@ -130,22 +198,28 @@ export default function EmployeeRequestsPage() {
           >
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5 border-b border-slate-100 pb-2">
               <FileText className="w-4 h-4 text-red-600" />
-              <span>Điền Thông Tin Đơn</span>
+              <span>Điền Thông Tin Đơn Xin Nghỉ</span>
             </h3>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Loại đơn / Lý do
+                Loại đơn / Chế độ nghỉ
               </label>
               <select
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:border-red-500"
               >
-                <option value="ANNUAL">Nghỉ phép năm (Có lương)</option>
-                <option value="SICK">Nghỉ ốm đau (BHXH)</option>
-                <option value="UNPAID">Nghỉ việc riêng không lương</option>
-                <option value="LATE_EXCUSE">Giải trình đi muộn / Quên chấm công</option>
+                <option value="ANNUAL">
+                  Nghỉ phép năm (Có lương - Còn {balances?.annualLeaveRemaining ?? 0} ngày)
+                </option>
+                <option value="COMPENSATORY">
+                  Nghỉ bù làm cuối tuần (Có lương - Tuần này còn {balances?.compensatoryAvailableThisWeek ?? 0} ngày)
+                </option>
+                <option value="SICK">Nghỉ ốm đau / Điều trị (Hưởng BHXH)</option>
+                <option value="PERSONAL">Việc riêng có lương (Hiếu hỷ theo luật)</option>
+                <option value="UNPAID">Nghỉ việc riêng không hưởng lương</option>
+                <option value="LATE_EXCUSE">Giải trình quên quẹt thẻ / Đi muộn</option>
               </select>
             </div>
 

@@ -47,6 +47,9 @@ export async function ensureDatabaseReady() {
         "email" TEXT,
         "department" TEXT,
         "role" TEXT NOT NULL DEFAULT 'EMPLOYEE',
+        "contractType" TEXT NOT NULL DEFAULT 'FULL_TIME',
+        "joinDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "annualLeaveBase" REAL NOT NULL DEFAULT 12.0,
         "telegramId" TEXT,
         "isActive" BOOLEAN NOT NULL DEFAULT true,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -57,6 +60,17 @@ export async function ensureDatabaseReady() {
     await prisma.$executeRawUnsafe(`
       CREATE UNIQUE INDEX IF NOT EXISTS "User_employeeCode_key" ON "User"("employeeCode");
     `);
+
+    // Column migrations if table already existed without new columns
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "contractType" TEXT NOT NULL DEFAULT 'FULL_TIME';`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "joinDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "annualLeaveBase" REAL NOT NULL DEFAULT 12.0;`);
+    } catch {}
 
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Shift" (
@@ -134,6 +148,7 @@ export async function ensureDatabaseReady() {
     const userCount = await prisma.user.count();
     if (userCount === 0) {
       const adminPass = await bcrypt.hash('admin123', 10);
+      const accPass = await bcrypt.hash('ketoan123', 10);
       const empPass = await bcrypt.hash('123456', 10);
 
       await prisma.user.createMany({
@@ -146,6 +161,20 @@ export async function ensureDatabaseReady() {
             email: 'admin@caritasdalat.org',
             department: 'Ban Quản Trị & Điều Hành',
             role: 'ADMIN',
+            contractType: 'FULL_TIME',
+            annualLeaveBase: 12.0,
+            isActive: true,
+          },
+          {
+            employeeCode: 'KETOAN',
+            fullName: 'Kế Toán Trưởng Caritas',
+            passwordHash: accPass,
+            phone: '02633822181',
+            email: 'ketoan@caritasdalat.org',
+            department: 'Ban Hành Chính & Kế Toán',
+            role: 'ACCOUNTANT',
+            contractType: 'FULL_TIME',
+            annualLeaveBase: 12.0,
             isActive: true,
           },
           {
@@ -156,6 +185,8 @@ export async function ensureDatabaseReady() {
             email: 'an.nguyen@caritasdalat.org',
             department: 'Ban Y Tế Bác Ái',
             role: 'EMPLOYEE',
+            contractType: 'FULL_TIME',
+            annualLeaveBase: 12.0,
             isActive: true,
           },
           {
@@ -166,6 +197,8 @@ export async function ensureDatabaseReady() {
             email: 'mai.tran@caritasdalat.org',
             department: 'Ban Khuyết Tật',
             role: 'EMPLOYEE',
+            contractType: 'PART_TIME',
+            annualLeaveBase: 6.0,
             isActive: true,
           },
           {
@@ -176,6 +209,8 @@ export async function ensureDatabaseReady() {
             email: 'nam.le@caritasdalat.org',
             department: 'Ban Học Bổng & Trẻ Em',
             role: 'EMPLOYEE',
+            contractType: 'CONTRACT',
+            annualLeaveBase: 0.0,
             isActive: true,
           },
         ],
@@ -187,6 +222,14 @@ export async function ensureDatabaseReady() {
             name: 'Ca Hành Chính Chuẩn (08:00 - 17:00)',
             startTime: '08:00',
             endTime: '17:00',
+            allowedLateMinutes: 15,
+            allowedEarlyMinutes: 15,
+            isActive: true,
+          },
+          {
+            name: 'Ca Bán Thời Gian Sáng (08:00 - 12:00)',
+            startTime: '08:00',
+            endTime: '12:00',
             allowedLateMinutes: 15,
             allowedEarlyMinutes: 15,
             isActive: true,
