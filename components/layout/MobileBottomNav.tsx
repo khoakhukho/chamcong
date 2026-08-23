@@ -10,7 +10,9 @@ import {
   History,
   User,
   ShieldCheck,
+  Bell,
 } from 'lucide-react';
+import { useNotifications } from '@/lib/notification-context';
 
 interface MobileBottomNavProps {
   userRole?: string;
@@ -19,6 +21,7 @@ interface MobileBottomNavProps {
 
 export default function MobileBottomNav({ userRole, onOpenProfile }: MobileBottomNavProps) {
   const pathname = usePathname();
+  const { unreadCount } = useNotifications();
 
   const navItems = [
     {
@@ -40,10 +43,10 @@ export default function MobileBottomNav({ userRole, onOpenProfile }: MobileBotto
       badge: null,
     },
     {
-      href: '/employee/history',
-      label: 'Lịch Sử',
-      icon: History,
-      badge: null,
+      href: '/employee/notifications',
+      label: 'Thông Báo',
+      icon: Bell,
+      badge: unreadCount > 0 ? unreadCount : null,
     },
   ];
 
@@ -65,11 +68,17 @@ export default function MobileBottomNav({ userRole, onOpenProfile }: MobileBotto
               }`}
             >
               <div
-                className={`p-1.5 rounded-xl transition ${
+                className={`p-1.5 rounded-xl transition relative ${
                   isActive ? 'bg-red-50 text-red-600 shadow-xs' : 'bg-transparent'
                 }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
+                {/* Red badge for unread notifications */}
+                {item.badge !== null && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-red-600 text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white shadow-sm animate-pulse">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
               </div>
               <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
               {isActive && (

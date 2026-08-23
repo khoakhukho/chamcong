@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { NotificationProvider } from '@/lib/notification-context';
 
 export const metadata: Metadata = {
   title: {
@@ -52,7 +53,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="CaritasDalat" />
       </head>
       <body className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-red-500 selection:text-white">
-        {children}
+        <NotificationProvider>
+          {children}
+        </NotificationProvider>
       </body>
     </html>
   );

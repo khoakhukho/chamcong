@@ -75,15 +75,15 @@ export async function POST(req: Request) {
       },
     });
 
-    // Create Broadcast Notification for all users
+    // Create Broadcast Notification for all users (targetRole: 'ALL' ensures every role sees it)
     try {
       await prisma.notification.create({
         data: {
           targetRole: 'ALL',
-          title: `📢 THÔNG BÁO MỚI: ${title.trim()}`,
-          content: `${content.substring(0, 120)}... (Vui lòng bấm xác nhận đã đọc)`,
+          title: `📢 ${title.trim()}`,
+          content: content.substring(0, 150) + (content.length > 150 ? '...' : ''),
           type: 'ANNOUNCEMENT',
-          link: '/chamcong',
+          link: '/chamcong', // Employee's main page where announcements appear
         },
       });
     } catch (notifErr) {

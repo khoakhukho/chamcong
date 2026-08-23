@@ -18,12 +18,15 @@ import {
   ShieldCheck,
   Menu,
   X,
+  Bell,
 } from 'lucide-react';
+import { useNotifications } from '@/lib/notification-context';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const handleLogout = async () => {
     try {
@@ -128,6 +131,8 @@ export default function AdminSidebar() {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
+            // Show notification badge on Duyệt Đơn Từ item
+            const showBadge = item.href === '/admin/requests' && unreadCount > 0;
             return (
               <Link
                 key={item.href}
@@ -140,7 +145,12 @@ export default function AdminSidebar() {
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {showBadge && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[9px] font-black rounded-full border border-red-800/60 animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Bell,
@@ -11,9 +11,8 @@ import {
   FolderKanban,
   X,
   ChevronRight,
-  Sparkles,
-  Info,
 } from 'lucide-react';
+import { useNotifications } from '@/lib/notification-context';
 
 interface ToastItem {
   id: number;
@@ -26,53 +25,50 @@ interface ToastItem {
 
 export default function NotificationToaster() {
   const router = useRouter();
+  const { notifications } = useNotifications();
   const [activeToasts, setActiveToasts] = useState<ToastItem[]>([]);
-  const seenNotificationIds = useRef<Set<number>>(new Set());
+  const seenIds = useRef<Set<number>>(new Set());
   const isFirstLoad = useRef<boolean>(true);
 
-  const checkNotifications = useCallback(async () => {
-    try {
-      const res = await fetch('/api/notifications');
-      if (!res.ok) return;
-
-      const data = await res.json();
-      const notifs: any[] = data.notifications || [];
-
-      if (isFirstLoad.current) {
-        // On first mount, mark existing notifications as seen so we don't spam 20 toasts
-        notifs.forEach((n) => seenNotificationIds.current.add(n.id));
-        
-        // But if there are unread notifications in the last 24h, show the latest one as an initial toast alert!
-        const latestUnread = notifs.find((n) => !n.isRead);
-        if (latestUnread) {
-          setActiveToasts([latestUnread]);
-        }
-        isFirstLoad.current = false;
-        return;
-      }
-
-      // Check for genuinely new notifications
-      const newItems: ToastItem[] = [];
-      notifs.forEach((n) => {
-        if (!seenNotificationIds.current.has(n.id)) {
-          seenNotificationIds.current.add(n.id);
-          newItems.push(n);
-        }
-      });
-
-      if (newItems.length > 0) {
-        setActiveToasts((prev) => [...newItems, ...prev].slice(0, 3));
-      }
-    } catch (err) {
-      console.warn('Toast fetch error:', err);
-    }
-  }, []);
-
   useEffect(() => {
-    checkNotifications();
-    const interval = setInterval(checkNotifications, 6000); // Check every 6s
-    return () => clearInterval(interval);
-  }, [checkNotifications]);
+    if (!notifications || notifications.length === 0) return;
+
+    if (isFirstLoad.current) {
+      // On first render: mark all existing as seen so we don't spam old toasts
+      notifications.forEach((n) => seenIds.current.add(n.id));
+
+      // Show the single latest unread as an initial alert
+      const latestUnread = notifications.find((n) => !n.isRead);
+      if (latestUnread) {
+        setActiveToasts([latestUnread]);
+        // Auto-dismiss after 6s
+        setTimeout(() => {
+          setActiveToasts((prev) => prev.filter((t) => t.id !== latestUnread.id));
+        }, 6000);
+      }
+      isFirstLoad.current = false;
+      return;
+    }
+
+    // Detect genuinely NEW notifications (not seen before)
+    const newItems: ToastItem[] = [];
+    notifications.forEach((n) => {
+      if (!seenIds.current.has(n.id)) {
+        seenIds.current.add(n.id);
+        newItems.push(n);
+      }
+    });
+
+    if (newItems.length > 0) {
+      setActiveToasts((prev) => [...newItems, ...prev].slice(0, 3));
+      // Auto-dismiss after 7s
+      newItems.forEach((item) => {
+        setTimeout(() => {
+          setActiveToasts((prev) => prev.filter((t) => t.id !== item.id));
+        }, 7000);
+      });
+    }
+  }, [notifications]);
 
   const dismissToast = (id: number) => {
     setActiveToasts((prev) => prev.filter((t) => t.id !== id));
@@ -98,7 +94,7 @@ export default function NotificationToaster() {
   if (activeToasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2.5 max-w-sm w-full pointer-events-none">
+    <div className="fixed top-16 right-2 sm:top-4 sm:right-4 z-[9999] flex flex-col space-y-2.5 max-w-sm w-full pointer-events-none px-2 sm:px-0">
       {activeToasts.map((toast) => (
         <div
           key={toast.id}
@@ -118,8 +114,8 @@ export default function NotificationToaster() {
             }}
           >
             <div className="flex items-center space-x-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-red-950 text-red-400 px-1.5 py-0.5 rounded border border-red-800/60">
-                Thông Báo Mới
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-red-950 text-red-400 px-1.5 py-0.5 rounded border border-red-800/60 animate-pulse">
+                🔔 Thông Báo Mới
               </span>
             </div>
             <h4 className="text-xs font-bold text-white mt-1 leading-snug">

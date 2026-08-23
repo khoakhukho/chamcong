@@ -68,14 +68,29 @@ export async function POST(req: Request) {
       },
     });
 
-    // Create Notification for Admin / HR
+    // Create Notifications for Admin AND Manager (HR) roles
     try {
       const typeLabel = getLeaveTypeLabel(leaveType);
+      const notifTitle = `📋 Đơn xin nghỉ mới: ${user.fullName} (${user.employeeCode})`;
+      const notifContent = `${user.fullName} vừa nộp ${typeLabel} (${count} ngày, từ ${formatDateVN(from)} đến ${formatDateVN(to)}). Lý do: "${reason}"`;
+
+      // Notify ADMIN role
       await prisma.notification.create({
         data: {
           targetRole: 'ADMIN',
-          title: `Đơn xin nghỉ mới: ${user.fullName} (${user.employeeCode})`,
-          content: `${user.fullName} vừa nộp ${typeLabel} (${count} ngày, từ ${formatDateVN(from)} đến ${formatDateVN(to)}). Lý do: "${reason}"`,
+          title: notifTitle,
+          content: notifContent,
+          type: 'LEAVE_REQUEST',
+          link: '/admin/requests',
+        },
+      });
+
+      // Also notify MANAGER role (HR/coordinator can review)
+      await prisma.notification.create({
+        data: {
+          targetRole: 'MANAGER',
+          title: notifTitle,
+          content: notifContent,
           type: 'LEAVE_REQUEST',
           link: '/admin/requests',
         },

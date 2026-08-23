@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Bell,
@@ -8,67 +8,35 @@ import {
   XCircle,
   Megaphone,
   FileText,
-  Clock,
-  Check,
   ChevronRight,
   Sparkles,
   FolderKanban,
   CheckCheck,
+  History,
 } from 'lucide-react';
 import { formatTimeVN, formatDateVN } from '@/lib/utils';
+import { useNotifications } from '@/lib/notification-context';
 
 export default function NotificationBell() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const { notifications, unreadCount, refresh, markRead, markAllRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const loadNotifications = useCallback(async () => {
-    try {
-      const res = await fetch('/api/notifications');
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (err) {
-      console.warn('Notifications fetch error:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 8000); // Poll every 8s
-
+  // Close on outside click
+  React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [loadNotifications]);
-
-  const handleMarkAsRead = async (id?: number) => {
-    try {
-      await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(id ? { id } : { markAll: true }),
-      });
-      await loadNotifications();
-    } catch {}
-  };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleNotificationClick = async (item: any) => {
     if (!item.isRead) {
-      await handleMarkAsRead(item.id);
+      await markRead(item.id);
     }
     if (item.link) {
       router.push(item.link);
@@ -97,14 +65,17 @@ export default function NotificationBell() {
     <div className="relative" ref={containerRef}>
       {/* Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) refresh(); // Refresh on open
+        }}
         className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
         title="Xem thông báo"
       >
         <Bell className="w-5 h-5 text-slate-700" />
         {unreadCount > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-[20px] h-[20px] px-1 bg-red-600 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce border-2 border-white shadow-md">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse border-2 border-white shadow-md">
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
@@ -117,18 +88,25 @@ export default function NotificationBell() {
             <div className="flex items-center space-x-2">
               <Bell className="w-4 h-4 text-red-400" />
               <span className="text-xs font-bold uppercase tracking-wider">
-                Thông Báo ({notifications.length})
+                Thông Báo
+                {unreadCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[9px] font-black rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
               </span>
             </div>
-            {unreadCount > 0 && (
-              <button
-                onClick={() => handleMarkAsRead()}
-                className="text-[11px] text-slate-300 hover:text-white flex items-center space-x-1 font-semibold transition"
-              >
-                <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Đọc tất cả ({unreadCount})</span>
-              </button>
-            )}
+            <div className="flex items-center space-x-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={() => markAllRead()}
+                  className="text-[11px] text-slate-300 hover:text-white flex items-center space-x-1 font-semibold transition"
+                >
+                  <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Đọc tất cả</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* List */}
@@ -172,6 +150,21 @@ export default function NotificationBell() {
                 </div>
               ))
             )}
+          </div>
+
+          {/* Footer - View All History */}
+          <div className="border-t border-slate-100 px-4 py-2.5 bg-slate-50">
+            <button
+              onClick={() => {
+                router.push('/employee/notifications');
+                setIsOpen(false);
+              }}
+              className="w-full text-xs text-slate-500 hover:text-red-600 font-semibold flex items-center justify-center space-x-1.5 transition py-0.5"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>Xem toàn bộ lịch sử thông báo</span>
+              <ChevronRight className="w-3 h-3" />
+            </button>
           </div>
         </div>
       )}
