@@ -49,13 +49,19 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 // For Turso: run `npx prisma db push` once to create tables
 // ─────────────────────────────────────────────────────────────────────────────
 export async function ensureDatabaseReady() {
+  if (globalForPrisma.isDbInitialized) return;
+
+  // On Turso Cloud: tables and seed data are already created permanently in cloud.
+  // Skipping 25+ redundant sequential DDL network calls eliminates 2-4 seconds of request latency!
+  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+    globalForPrisma.isDbInitialized = true;
+    return;
+  }
+
   try {
-    // Auto-create all tables (safe with IF NOT EXISTS on SQLite and Turso/LibSQL)
+    // SQLite local fallback: Auto-create all tables once
     await createAllTables();
-
-    // Seed core data (projects + admin user) — runs for both Turso and SQLite
     await seedCoreData();
-
     globalForPrisma.isDbInitialized = true;
   } catch (err) {
     console.error('ensureDatabaseReady error:', err);

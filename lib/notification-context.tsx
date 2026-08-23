@@ -56,10 +56,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     await markRead(undefined);
   }, [markRead]);
 
-  // Initial load + polling every 5s
+  // Initial load + polling with visibility check
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, 5000);
+    const interval = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        refresh();
+      }
+    }, 15000);
     return () => clearInterval(interval);
   }, [refresh]);
 
