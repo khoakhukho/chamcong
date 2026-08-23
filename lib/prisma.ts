@@ -429,7 +429,7 @@ export async function ensureDatabaseReady() {
             isActive: true,
           },
           {
-            employeeCode: 'vnxkhoa',
+            employeeCode: 'VNXKHOA',
             fullName: 'Vũ Nguyễn Xuân Khoa',
             passwordHash: await bcrypt.hash('password123', 10),
             phone: '0933123456',
@@ -661,15 +661,20 @@ export async function ensureDatabaseReady() {
       }
     }
 
-    // Ensure vnxkhoa user exists
-    const vnxkhoaExists = await prisma.user.findUnique({
-      where: { employeeCode: 'vnxkhoa' },
+    // Ensure VNXKHOA user exists
+    let vnx = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { employeeCode: 'VNXKHOA' },
+          { employeeCode: 'vnxkhoa' },
+        ],
+      },
     });
-    if (!vnxkhoaExists) {
+    if (!vnx) {
       const vnxPass = await bcrypt.hash('password123', 10);
-      const vnx = await prisma.user.create({
+      vnx = await prisma.user.create({
         data: {
-          employeeCode: 'vnxkhoa',
+          employeeCode: 'VNXKHOA',
           fullName: 'Vũ Nguyễn Xuân Khoa',
           passwordHash: vnxPass,
           phone: '0933123456',
@@ -681,8 +686,15 @@ export async function ensureDatabaseReady() {
           isActive: true,
         },
       });
+    } else if (vnx.employeeCode !== 'VNXKHOA') {
+      vnx = await prisma.user.update({
+        where: { id: vnx.id },
+        data: { employeeCode: 'VNXKHOA' },
+      });
+    }
 
-      // Assign vnxkhoa to PLD and SKTT
+    if (vnx) {
+      // Assign VNXKHOA to PLD and SKTT
       const pldProj = await prisma.project.findUnique({ where: { code: 'PLD' } });
       const skttProj = await prisma.project.findUnique({ where: { code: 'SKTT' } });
 
@@ -700,34 +712,6 @@ export async function ensureDatabaseReady() {
           create: { projectId: skttProj.id, userId: vnx.id, roleInProject: 'COORDINATOR' },
         });
       }
-
-      // Add Sample Leave Request & Notification for vnxkhoa
-      const today = new Date();
-      const pastDate1 = new Date(today.getTime() - 2 * 86400000);
-      const pastDate2 = new Date(today.getTime() - 1 * 86400000);
-      await prisma.leaveRequest.create({
-        data: {
-          userId: vnx.id,
-          leaveType: 'COMPENSATORY',
-          fromDate: pastDate1,
-          toDate: pastDate2,
-          daysCount: 1.0,
-          reason: 'Nghỉ bù ngày thứ Bảy trực hỗ trợ cộng đồng tại buôn làng',
-          status: 'APPROVED',
-          reviewNotes: 'Đồng ý duyệt nghỉ bù ngày làm việc cuối tuần thực địa.',
-        },
-      });
-
-      await prisma.notification.create({
-        data: {
-          userId: vnx.id,
-          title: '✓ Đơn xin nghỉ đã được DUYỆT',
-          content: 'Nghỉ bù (1 ngày) của bạn đã được phê duyệt bởi Quản Trị Viên Caritas. Ý kiến: "Đồng ý duyệt nghỉ bù ngày làm việc cuối tuần thực địa."',
-          type: 'LEAVE_APPROVED',
-          link: '/employee/requests',
-          isRead: false,
-        },
-      });
     }
 
     globalForPrisma.isDbInitialized = true;

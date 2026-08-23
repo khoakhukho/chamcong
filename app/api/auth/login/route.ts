@@ -30,12 +30,12 @@ export async function POST(req: Request) {
       },
     });
 
-    // Auto-create vnxkhoa account if accessed on a fresh cold start
+    // Auto-create VNXKHOA account if accessed on a fresh cold start
     if (!user && (codeLower === 'vnxkhoa' || codeLower === 'khoa')) {
       const vnxPass = await bcrypt.hash('password123', 10);
       user = await prisma.user.create({
         data: {
-          employeeCode: 'vnxkhoa',
+          employeeCode: 'VNXKHOA',
           fullName: 'Vũ Nguyễn Xuân Khoa',
           passwordHash: vnxPass,
           phone: '0933123456',

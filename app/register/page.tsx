@@ -208,7 +208,7 @@ export default function RegisterPage() {
             {/* Username / Employee Code */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                TÊN ĐĂNG NHẬP (USERNAME) <span className="text-red-400">*</span>
+                TÊN ĐĂNG NHẬP (CAPSLOCK) <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -217,13 +217,13 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   value={employeeCode}
-                  onChange={(e) => setEmployeeCode(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''))}
-                  placeholder="VD: vnxkhoa, annguyen"
+                  onChange={(e) => setEmployeeCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_.-]/g, ''))}
+                  placeholder="VD: VNXKHOA, ANNGUYEN"
                   required
-                  className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-hidden focus:border-red-500 font-mono font-bold lowercase"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-hidden focus:border-red-500 font-mono font-bold uppercase tracking-wider"
                 />
               </div>
-              <span className="text-[10px] text-slate-500 mt-0.5 block">Tự đặt theo tên bạn (viết liền không dấu)</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">Tự động viết hoa (VD: VNXKHOA, MAITRAN, ANNGUYEN)</span>
             </div>
 
             {/* Full Name */}

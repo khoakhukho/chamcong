@@ -30,11 +30,11 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const codeClean = employeeCode.trim().toLowerCase(); // e.g. vnxkhoa
+    const codeClean = employeeCode.trim().toUpperCase(); // e.g. VNXKHOA
 
     if (codeClean.length < 3) {
       return NextResponse.json(
-        { error: 'Tên đăng nhập / Mã nhân sự tối thiểu 3 ký tự (VD: vnxkhoa, annguyen)' },
+        { error: 'Tên đăng nhập / Mã nhân sự tối thiểu 3 ký tự (VD: VNXKHOA, ANNGUYEN)' },
         { status: 400 }
       );
     }
@@ -62,15 +62,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check unique employee code / username
+    // Check if code or email exists
     const existingCode = await prisma.user.findFirst({
-      where: { employeeCode: { equals: codeClean } },
+      where: {
+        OR: [
+          { employeeCode: codeClean },
+          { employeeCode: codeClean.toLowerCase() },
+          { employeeCode: codeClean.toUpperCase() },
+        ],
+      },
     });
-
     if (existingCode) {
       return NextResponse.json(
-        { error: `Tên đăng nhập "${codeClean}" đã tồn tại. Vui lòng chọn tên khác.` },
-        { status: 409 }
+        { error: `Tên đăng nhập "${codeClean}" đã có người sử dụng. Vui lòng chọn tên khác.` },
+        { status: 400 }
       );
     }
 

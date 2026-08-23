@@ -75,7 +75,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              MÃ NHÂN VIÊN
+              TÊN ĐĂNG NHẬP / MÃ NHÂN VIÊN (TỰ ĐỘNG VIẾT HOA)
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -84,10 +84,10 @@ export default function LoginPage() {
               <input
                 type="text"
                 value={employeeCode}
-                onChange={(e) => setEmployeeCode(e.target.value)}
-                placeholder="VD: NV001, KETOAN hoặc ADMIN"
+                onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
+                placeholder="VD: VNXKHOA, NV001, KETOAN hoặc ADMIN"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-800 focus:border-red-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-hidden transition font-mono uppercase font-bold"
+                className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-800 focus:border-red-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-hidden transition font-mono uppercase font-bold tracking-wider"
               />
             </div>
           </div>
