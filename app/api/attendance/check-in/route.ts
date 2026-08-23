@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     if (latitude != null && longitude != null) {
       const geoResult = checkGeofence({ latitude, longitude }, locations);
-      isValidLocation = geoResult.isValid;
+      isValidLocation = true; // All community / field locations are valid
       distanceMeters = geoResult.distanceMeters;
       nearestLocationName = geoResult.nearestLocation?.name || null;
 
@@ -44,8 +44,8 @@ export async function POST(req: Request) {
         finalAddress = await getAddressFromCoordinates({ latitude, longitude });
       }
     } else {
-      isValidLocation = false;
-      finalAddress = 'Không thể lấy tọa độ GPS của thiết bị';
+      isValidLocation = true;
+      finalAddress = 'Không có tọa độ GPS';
     }
 
     // 2. Shift & Late/Early Calculation

@@ -147,14 +147,8 @@ export default function EmployeeHistoryPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        item.isValidLocation
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {item.isValidLocation ? '✓ Đúng địa điểm' : '⚠ Ngoài vùng'}
+                    <span className="text-[10px] font-semibold text-slate-500 flex items-center space-x-1">
+                      <span>📍 Tọa độ GPS đã ghi nhận</span>
                     </span>
 
                     {item.isLate && (

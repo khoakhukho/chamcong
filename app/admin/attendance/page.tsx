@@ -117,13 +117,12 @@ export default function AdminAttendancePage() {
             <option value="ALL">Tất cả trạng thái</option>
             <option value="LATE">Đi muộn (Trễ)</option>
             <option value="EARLY">Về sớm</option>
-            <option value="INVALID_LOC">Ngoài bán kính GPS</option>
           </select>
         </div>
       </div>
 
       {/* Logs Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950 text-slate-400 text-[11px] uppercase tracking-wider font-semibold border-b border-slate-800">
@@ -132,8 +131,8 @@ export default function AdminAttendancePage() {
                 <th className="px-5 py-3.5">Phòng ban</th>
                 <th className="px-5 py-3.5">Loại quẹt</th>
                 <th className="px-5 py-3.5">Thời gian thực tế</th>
-                <th className="px-5 py-3.5">Vị trí & GPS</th>
-                <th className="px-5 py-3.5">Khoảng cách</th>
+                <th className="px-5 py-3.5">Vị trí / Địa chỉ</th>
+                <th className="px-5 py-3.5">Tọa độ GPS</th>
                 <th className="px-5 py-3.5">Trạng thái ca</th>
                 <th className="px-5 py-3.5 text-center">Ảnh Watermark</th>
               </tr>
@@ -182,22 +181,15 @@ export default function AdminAttendancePage() {
                     </td>
                     <td className="px-5 py-3.5 text-slate-300 max-w-xs">
                       <div className="truncate font-semibold">
-                        {item.nearestLocationName || 'Vị trí ghi nhận'}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {item.locationAddress}
+                        {item.locationAddress || item.nearestLocationName || 'Vị trí ghi nhận'}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          item.isValidLocation
-                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                            : 'bg-rose-950 text-rose-400 border border-rose-800'
-                        }`}
-                      >
-                        {item.isValidLocation ? `✓ Hợp lệ (${item.distanceMeters}m)` : `⚠ Cách ${item.distanceMeters}m`}
-                      </span>
+                    <td className="px-5 py-3.5 font-mono text-sky-400 text-[11px]">
+                      {item.latitude && item.longitude ? (
+                        <span>{item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}</span>
+                      ) : (
+                        <span className="text-slate-500">Chưa có GPS</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 font-semibold">
                       {item.isLate ? (

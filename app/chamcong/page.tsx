@@ -326,8 +326,11 @@ export default function ChamCongPage() {
         <div className="bg-white rounded-3xl p-5 shadow-xs border border-slate-200 text-xs space-y-2.5">
           <div className="font-bold text-slate-700 flex items-center space-x-1.5">
             <Building2 className="w-4 h-4 text-red-600" />
-            <span>Địa Điểm Chấm Công Hợp Lệ ({locations.length})</span>
+            <span>Cơ Sở & Điểm Hoạt Động Caritas Đà Lạt ({locations.length})</span>
           </div>
+          <p className="text-[11px] text-slate-500">
+            Hệ thống hỗ trợ chấm công tại văn phòng và khi đi công tác, hoạt động cộng đồng ngoài cơ sở.
+          </p>
           <div className="space-y-2">
             {locations.map((loc) => (
               <div
@@ -338,9 +341,6 @@ export default function ChamCongPage() {
                 <div>
                   <strong className="text-slate-800 block font-semibold">{loc.name}</strong>
                   <span className="text-slate-500">{loc.address || 'Khu vực cơ sở Caritas'}</span>
-                  <span className="ml-1 text-[10px] text-slate-400 font-mono">
-                    (Bán kính: {loc.radiusMeters}m)
-                  </span>
                 </div>
               </div>
             ))}

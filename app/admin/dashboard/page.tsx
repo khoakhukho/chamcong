@@ -118,16 +118,16 @@ export default function AdminDashboardPage() {
           <div className="text-[10px] text-amber-400/80">Vượt giờ cho phép</div>
         </div>
 
-        {/* Invalid Location Warning */}
-        <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-800/60 space-y-1">
-          <div className="flex items-center justify-between text-rose-400 text-xs font-semibold">
-            <span>Ngoài bán kính</span>
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+        {/* Total Attendance Today */}
+        <div className="p-4 rounded-2xl bg-teal-950/40 border border-teal-800/60 space-y-1">
+          <div className="flex items-center justify-between text-teal-400 text-xs font-semibold">
+            <span>Tổng lượt quẹt</span>
+            <MapPin className="w-4 h-4 text-teal-400" />
           </div>
-          <div className="text-2xl font-black text-rose-300 font-mono">
-            {stats ? stats.invalidLocationCount : '--'}
+          <div className="text-2xl font-black text-teal-300 font-mono">
+            {recentAttendances ? recentAttendances.length : '--'}
           </div>
-          <div className="text-[10px] text-rose-400/80">Cảnh báo GPS</div>
+          <div className="text-[10px] text-teal-400/80">Có định vị GPS</div>
         </div>
 
         {/* Pending Requests */}
@@ -175,8 +175,8 @@ export default function AdminDashboardPage() {
                 <th className="px-5 py-3.5">Phòng ban</th>
                 <th className="px-5 py-3.5">Loại quẹt</th>
                 <th className="px-5 py-3.5">Thời gian</th>
-                <th className="px-5 py-3.5">Vị trí GPS</th>
-                <th className="px-5 py-3.5">Kiểm soát</th>
+                <th className="px-5 py-3.5">Vị trí GPS / Địa chỉ</th>
+                <th className="px-5 py-3.5">Tình trạng</th>
                 <th className="px-5 py-3.5 text-center">Ảnh Watermark</th>
               </tr>
             </thead>
@@ -225,21 +225,17 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="px-5 py-3.5 text-slate-300 max-w-xs">
                       <div className="truncate font-semibold">
-                        {item.nearestLocationName || 'Điểm chấm công'}
+                        {item.locationAddress || item.nearestLocationName || 'Đã ghi nhận tọa độ'}
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {item.locationAddress}
-                      </div>
+                      {item.latitude && item.longitude && (
+                        <div className="text-[10px] text-sky-400 font-mono">
+                          {item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          item.isValidLocation
-                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                            : 'bg-rose-950 text-rose-400 border border-rose-800'
-                        }`}
-                      >
-                        {item.isValidLocation ? 'Hợp lệ' : `Cảnh báo (${item.distanceMeters}m)`}
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                        {item.latitude ? '✓ Đã lấy GPS' : 'Không có GPS'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-center">

@@ -408,9 +408,9 @@ export async function generateAttendanceLogsExcelReport(
     'Phòng ban',
     'Loại quẹt',
     'Thời gian (Server GMT+7)',
-    'Địa điểm gần nhất',
-    'Khoảng cách',
-    'Kiểm soát GPS',
+    'Vị trí / Địa chỉ thực tế',
+    'Tọa độ GPS',
+    'Tình trạng GPS',
     'Trạng thái ca',
     'Ghi chú',
     'Ảnh xác thực',
@@ -431,6 +431,11 @@ export async function generateAttendanceLogsExcelReport(
 
   // Data rows
   logs.forEach((item, idx) => {
+    const coordDisplay =
+      item.latitude && item.longitude
+        ? `${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}`
+        : 'Chưa có GPS';
+
     const row = sheet.addRow([
       idx + 1,
       item.employeeCode,
@@ -438,9 +443,9 @@ export async function generateAttendanceLogsExcelReport(
       item.department,
       item.checkType === 'IN' ? 'VÀO CA (Check-in)' : 'RA CA (Check-out)',
       format(item.serverTime, 'dd/MM/yyyy HH:mm:ss'),
-      item.nearestLocationName || item.locationAddress || 'Không xác định',
-      item.distanceMeters ? `${item.distanceMeters}m` : '0m',
-      item.isValidLocation ? 'Hợp lệ' : 'CẢNH BÁO (Ngoài bán kính)',
+      item.locationAddress || item.nearestLocationName || 'Không xác định',
+      coordDisplay,
+      item.latitude ? '✓ Đã lấy GPS' : 'Chưa lấy GPS',
       item.isLate
         ? `Trễ ${item.lateMinutes} phút`
         : item.isEarlyLeave
@@ -456,9 +461,6 @@ export async function generateAttendanceLogsExcelReport(
       cell.alignment = { vertical: 'middle' };
       if ([1, 2, 5, 6, 8, 9, 10].includes(colNum)) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
-      if (colNum === 9 && !item.isValidLocation) {
-        cell.font = { color: { argb: 'FFDC2626' }, bold: true };
       }
       if (colNum === 10 && item.isLate) {
         cell.font = { color: { argb: 'FFD97706' }, bold: true };

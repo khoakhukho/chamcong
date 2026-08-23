@@ -223,20 +223,18 @@ export default function CameraCapture({
       // GPS Coordinates & Location
       textY += 18;
       ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillStyle = '#CBD5E1'; // Slate-300
+      ctx.fillStyle = '#38BDF8'; // Sky-400
       const coordStr = coords
-        ? `📍 ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
-        : '📍 Không có GPS';
+        ? `📍 GPS: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
+        : '📍 Đang lấy GPS...';
       ctx.fillText(coordStr, paddingX, textY);
 
-      // Address & Nearest Location badge
+      // Address & Community location
       textY += 18;
       ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillStyle = geoResult?.isValid ? '#4ADE80' : '#FBBF24'; // Green / Amber
-      const locStatus = geoResult
-        ? `[${geoResult.isValid ? '✓ ĐÚNG ĐỊA ĐIỂM' : '⚠ NGOÀI VÙNG'}] ${geoResult.nearestLocation?.name || ''} (${geoResult.distanceMeters}m)`
-        : '[ĐANG XÁC THỰC VỊ TRÍ]';
-      ctx.fillText(locStatus, paddingX, textY);
+      ctx.fillStyle = '#CBD5E1'; // Slate-300
+      const addrDisplay = address.length > 55 ? address.substring(0, 52) + '...' : address;
+      ctx.fillText(`🏠 ${addrDisplay}`, paddingX, textY);
 
       // Convert to WebP / JPEG Data URL
       const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
@@ -266,7 +264,7 @@ export default function CameraCapture({
       latitude: coords?.latitude ?? null,
       longitude: coords?.longitude ?? null,
       locationAddress: address,
-      isValidLocation: geoResult?.isValid ?? true,
+      isValidLocation: true,
       distanceMeters: geoResult?.distanceMeters ?? 0,
       nearestLocationName: geoResult?.nearestLocation?.name ?? null,
     });
@@ -351,21 +349,13 @@ export default function CameraCapture({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1.5 text-slate-300">
             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            <span className="truncate max-w-[200px]">
-              {geoResult?.nearestLocation?.name || address}
+            <span className="truncate max-w-[240px]">
+              {address}
             </span>
           </div>
-          {geoResult && (
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                geoResult.isValid
-                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                  : 'bg-amber-950 text-amber-400 border border-amber-800'
-              }`}
-            >
-              {geoResult.isValid ? 'HỢP LỆ' : `NGOÀI VÙNG (${geoResult.distanceMeters}m)`}
-            </span>
-          )}
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+            {coords ? '✓ ĐÃ LẤY GPS' : 'ĐANG LẤY GPS'}
+          </span>
         </div>
       </div>
 
