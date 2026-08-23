@@ -70,6 +70,44 @@ export default function EmployeeRequestsPage() {
     loadData();
   }, [loadData]);
 
+  // Helper to calculate working days (Monday-Friday) between fromDate and toDate
+  const calculateWorkingDays = (startStr: string, endStr: string): number => {
+    if (!startStr || !endStr) return 1;
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (end < start) return 1;
+
+    let count = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const dayOfWeek = cur.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Mon to Fri
+        count++;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count > 0 ? count : 1;
+  };
+
+  const handleFromDateChange = (val: string) => {
+    setFromDate(val);
+    if (toDate) {
+      const days = calculateWorkingDays(val, toDate);
+      setDaysCount(days.toString());
+    } else {
+      setToDate(val);
+      setDaysCount('1');
+    }
+  };
+
+  const handleToDateChange = (val: string) => {
+    setToDate(val);
+    if (fromDate) {
+      const days = calculateWorkingDays(fromDate, val);
+      setDaysCount(days.toString());
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -231,9 +269,9 @@ export default function EmployeeRequestsPage() {
                 <input
                   type="date"
                   value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
+                  onChange={(e) => handleFromDateChange(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-red-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-red-500 font-semibold text-slate-800"
                 />
               </div>
               <div>
@@ -243,9 +281,9 @@ export default function EmployeeRequestsPage() {
                 <input
                   type="date"
                   value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
+                  onChange={(e) => handleToDateChange(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-red-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-red-500 font-semibold text-slate-800"
                 />
               </div>
             </div>

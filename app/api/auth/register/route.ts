@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import prisma, { ensureDatabaseReady } from '@/lib/prisma';
 import { hashPassword, setSessionCookie, UserSession } from '@/lib/auth';
+import { verifyOtpCode } from '@/lib/mailer';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -15,20 +18,23 @@ export async function POST(req: Request) {
       contractType,
       phone,
       email,
+      otp,
+      avatarUrl,
     } = body;
 
-    if (!employeeCode || !fullName || !password) {
+    if (!employeeCode || !fullName || !password || !email) {
       return NextResponse.json(
-        { error: 'Vui lòng điền đầy đủ Mã nhân viên, Họ tên và Mật khẩu' },
+        { error: 'Vui lòng điền đầy đủ Tên đăng nhập, Họ tên, Email và Mật khẩu' },
         { status: 400 }
       );
     }
 
-    const codeClean = employeeCode.trim().toUpperCase();
+    const cleanEmail = email.trim().toLowerCase();
+    const codeClean = employeeCode.trim().toLowerCase(); // e.g. vnxkhoa
 
     if (codeClean.length < 3) {
       return NextResponse.json(
-        { error: 'Mã nhân viên tối thiểu 3 ký tự (VD: NV005, CC01)' },
+        { error: 'Tên đăng nhập / Mã nhân sự tối thiểu 3 ký tự (VD: vnxkhoa, annguyen)' },
         { status: 400 }
       );
     }
@@ -40,14 +46,42 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check existing
-    const existing = await prisma.user.findUnique({
-      where: { employeeCode: codeClean },
+    // Verify OTP
+    if (!otp) {
+      return NextResponse.json(
+        { error: 'Vui lòng nhập mã OTP 6 số đã được gửi qua email để xác thực' },
+        { status: 400 }
+      );
+    }
+
+    const isOtpValid = await verifyOtpCode(cleanEmail, otp);
+    if (!isOtpValid) {
+      return NextResponse.json(
+        { error: 'Mã xác thực OTP không chính xác hoặc đã hết hạn (5 phút). Vui lòng thử lại.' },
+        { status: 400 }
+      );
+    }
+
+    // Check unique employee code / username
+    const existingCode = await prisma.user.findFirst({
+      where: { employeeCode: { equals: codeClean } },
     });
 
-    if (existing) {
+    if (existingCode) {
       return NextResponse.json(
-        { error: `Mã nhân viên "${codeClean}" đã tồn tại trên hệ thống. Vui lòng chọn mã khác hoặc liên hệ Ban Quản Trị.` },
+        { error: `Tên đăng nhập "${codeClean}" đã tồn tại. Vui lòng chọn tên khác.` },
+        { status: 409 }
+      );
+    }
+
+    // Check unique email
+    const existingEmail = await prisma.user.findFirst({
+      where: { email: cleanEmail },
+    });
+
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: `Email "${cleanEmail}" đã được đăng ký tài khoản khác.` },
         { status: 409 }
       );
     }
@@ -65,11 +99,12 @@ export async function POST(req: Request) {
         fullName: fullName.trim(),
         passwordHash,
         phone: phone ? phone.trim() : null,
-        email: email ? email.trim().toLowerCase() : null,
+        email: cleanEmail,
         department: department || 'Ban Y Tế Bác Ái',
         role: 'EMPLOYEE',
         contractType: validContract,
         annualLeaveBase: annualBase,
+        avatarUrl: avatarUrl || null,
         isActive: true,
       },
     });
@@ -80,6 +115,8 @@ export async function POST(req: Request) {
       fullName: newUser.fullName,
       role: newUser.role as any,
       department: newUser.department,
+      contractType: newUser.contractType,
+      avatarUrl: newUser.avatarUrl,
       email: newUser.email,
       phone: newUser.phone,
     };
@@ -88,7 +125,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Đăng ký tài khoản thành công!',
+      message: 'Đăng ký tài khoản và xác thực email thành công!',
       user: sessionData,
     });
   } catch (error: any) {

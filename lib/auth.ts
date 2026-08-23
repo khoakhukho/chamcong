@@ -10,8 +10,10 @@ export interface UserSession {
   id: number;
   employeeCode: string;
   fullName: string;
-  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  role: 'ADMIN' | 'ACCOUNTANT' | 'MANAGER' | 'EMPLOYEE';
   department: string | null;
+  contractType?: string | null;
+  avatarUrl?: string | null;
   email: string | null;
   phone: string | null;
 }
@@ -47,7 +49,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
 
     await ensureDatabaseReady();
 
-    // Verify in DB to ensure user is active
+    // Verify in DB to ensure user is active and retrieve updated avatar & contractType
     const user = await prisma.user.findUnique({
       where: { id: session.id },
       select: {
@@ -56,6 +58,8 @@ export async function getCurrentUser(): Promise<UserSession | null> {
         fullName: true,
         role: true,
         department: true,
+        contractType: true,
+        avatarUrl: true,
         email: true,
         phone: true,
         isActive: true,
@@ -68,34 +72,32 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       id: user.id,
       employeeCode: user.employeeCode,
       fullName: user.fullName,
-      role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
+      role: user.role as any,
       department: user.department,
+      contractType: user.contractType,
+      avatarUrl: user.avatarUrl,
       email: user.email,
       phone: user.phone,
     };
-  } catch (err) {
-    console.error('getCurrentUser error:', err);
+  } catch (error) {
+    console.error('getCurrentUser error:', error);
     return null;
   }
 }
 
-export async function setSessionCookie(session: UserSession): Promise<void> {
+export async function setSessionCookie(session: UserSession) {
   const token = signToken(session);
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days
     path: '/',
   });
 }
 
-export async function clearSessionCookie(): Promise<void> {
-  try {
-    const cookieStore = await cookies();
-    cookieStore.delete(COOKIE_NAME);
-  } catch (err) {
-    console.error('clearSessionCookie error:', err);
-  }
+export async function clearSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_NAME);
 }

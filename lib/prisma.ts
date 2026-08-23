@@ -50,6 +50,7 @@ export async function ensureDatabaseReady() {
         "contractType" TEXT NOT NULL DEFAULT 'FULL_TIME',
         "joinDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "annualLeaveBase" REAL NOT NULL DEFAULT 12.0,
+        "avatarUrl" TEXT,
         "telegramId" TEXT,
         "isActive" BOOLEAN NOT NULL DEFAULT true,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -70,6 +71,22 @@ export async function ensureDatabaseReady() {
     } catch {}
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "annualLeaveBase" REAL NOT NULL DEFAULT 12.0;`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "avatarUrl" TEXT;`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "EmailOtp" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "email" TEXT NOT NULL,
+        "code" TEXT NOT NULL,
+        "expiresAt" DATETIME NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EmailOtp_email_code_idx" ON "EmailOtp"("email", "code");`);
     } catch {}
 
     await prisma.$executeRawUnsafe(`

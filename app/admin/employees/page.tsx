@@ -241,8 +241,19 @@ export default function AdminEmployeesPage() {
                       {emp.employeeCode}
                     </td>
                     <td className="px-5 py-3.5 font-bold text-white">
-                      <div>{emp.fullName}</div>
-                      <div className="text-[11px] text-slate-500 font-normal">{emp.phone || emp.email || '-'}</div>
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center text-[10px] text-red-400 font-bold uppercase">
+                          {emp.avatarUrl ? (
+                            <img src={emp.avatarUrl} alt={emp.fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            emp.fullName?.charAt(0) || 'NV'
+                          )}
+                        </div>
+                        <div>
+                          <div>{emp.fullName}</div>
+                          <div className="text-[11px] text-slate-500 font-normal">{emp.phone || emp.email || '-'}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-slate-300">
                       {emp.department || 'Chung'}
