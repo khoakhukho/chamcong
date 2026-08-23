@@ -18,6 +18,7 @@ import {
   FolderKanban,
 } from 'lucide-react';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import NotificationToaster from '@/components/notifications/NotificationToaster';
 
 interface EmployeeHeaderProps {
   user: {
@@ -54,14 +55,25 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setSaveError('Vui lòng chọn file hình ảnh (PNG, JPG, WebP)');
+      return;
+    }
+
+    // Limit to 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveError('Kích thước ảnh không được vượt quá 5MB');
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) {
-        setAvatarPreview(reader.result as string);
-      }
+    reader.onload = (event) => {
+      setAvatarPreview(event.target?.result as string);
+      setSaveError(null);
     };
     reader.readAsDataURL(file);
   };
@@ -70,13 +82,12 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
     if (!avatarPreview) return;
     setSavingAvatar(true);
     setSaveError(null);
-    setSaveSuccess(false);
 
     try {
       const res = await fetch('/api/employee/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarImageData: avatarPreview }),
+        body: JSON.stringify({ avatarUrl: avatarPreview }),
       });
 
       const data = await res.json();
@@ -103,6 +114,9 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
 
   return (
     <>
+      {/* Floating Real-time Notification Toasts */}
+      <NotificationToaster />
+
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
         {/* Top Banner */}
         <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between">
@@ -237,7 +251,7 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleFileChange}
+                onChange={handleAvatarFileChange}
                 className="hidden"
               />
 

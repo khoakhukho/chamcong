@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import NotificationToaster from '@/components/notifications/NotificationToaster';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,9 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+      {/* Floating Real-time Notification Toasts */}
+      <NotificationToaster />
+
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 bg-slate-900 overflow-y-auto">
         <header className="h-16 px-6 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">

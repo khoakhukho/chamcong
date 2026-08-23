@@ -428,6 +428,18 @@ export async function ensureDatabaseReady() {
             annualLeaveBase: 0.0,
             isActive: true,
           },
+          {
+            employeeCode: 'vnxkhoa',
+            fullName: 'Vũ Nguyễn Xuân Khoa',
+            passwordHash: await bcrypt.hash('password123', 10),
+            phone: '0933123456',
+            email: 'vnxkhoa@caritasdalat.org',
+            department: 'Ban Quản Trị & Dự Án',
+            role: 'ADMIN',
+            contractType: 'FULL_TIME',
+            annualLeaveBase: 12.0,
+            isActive: true,
+          },
         ],
       });
 
@@ -480,6 +492,173 @@ export async function ensureDatabaseReady() {
           },
         ],
       });
+
+      // Fetch created users & projects for linking
+      const allUsers = await prisma.user.findMany();
+      const allProjects = await prisma.project.findMany();
+
+      const adminUser = allUsers.find((u) => u.employeeCode === 'ADMIN');
+      const nv001User = allUsers.find((u) => u.employeeCode === 'NV001');
+      const nv002User = allUsers.find((u) => u.employeeCode === 'NV002');
+      const nv003User = allUsers.find((u) => u.employeeCode === 'NV003');
+      const vnxkhoaUser = allUsers.find((u) => u.employeeCode === 'vnxkhoa');
+
+      const pldProj = allProjects.find((p) => p.code === 'PLD');
+      const skttProj = allProjects.find((p) => p.code === 'SKTT');
+      const khuytTatProj = allProjects.find((p) => p.code === 'KHUYT_TAT');
+      const hocBongProj = allProjects.find((p) => p.code === 'HOC_BONG');
+
+      // Seed Project Memberships
+      if (pldProj && nv001User) {
+        await prisma.projectMember.create({
+          data: { projectId: pldProj.id, userId: nv001User.id, roleInProject: 'STAFF' },
+        });
+      }
+      if (pldProj && vnxkhoaUser) {
+        await prisma.projectMember.create({
+          data: { projectId: pldProj.id, userId: vnxkhoaUser.id, roleInProject: 'COORDINATOR' },
+        });
+      }
+      if (skttProj && vnxkhoaUser) {
+        await prisma.projectMember.create({
+          data: { projectId: skttProj.id, userId: vnxkhoaUser.id, roleInProject: 'COORDINATOR' },
+        });
+      }
+      if (khuytTatProj && nv002User) {
+        await prisma.projectMember.create({
+          data: { projectId: khuytTatProj.id, userId: nv002User.id, roleInProject: 'STAFF' },
+        });
+      }
+      if (hocBongProj && nv003User) {
+        await prisma.projectMember.create({
+          data: { projectId: hocBongProj.id, userId: nv003User.id, roleInProject: 'STAFF' },
+        });
+      }
+
+      // Seed Sample Leave Requests & Reviews for test verification
+      const today = new Date();
+      const pastDate1 = new Date(today.getTime() - 2 * 86400000);
+      const pastDate2 = new Date(today.getTime() - 1 * 86400000);
+
+      if (nv001User && adminUser) {
+        await prisma.leaveRequest.create({
+          data: {
+            userId: nv001User.id,
+            leaveType: 'ANNUAL',
+            fromDate: pastDate1,
+            toDate: pastDate2,
+            daysCount: 2.0,
+            reason: 'Xin nghỉ phép năm 2 ngày để giải quyết việc gia đình',
+            status: 'APPROVED',
+            approvedById: adminUser.id,
+            reviewNotes: 'Đã phê duyệt nghỉ phép năm theo đúng quy định của Caritas.',
+          },
+        });
+
+        // Add Notification for NV001
+        await prisma.notification.create({
+          data: {
+            userId: nv001User.id,
+            title: '✓ Đơn xin nghỉ đã được DUYỆT',
+            content: `Nghỉ phép năm của bạn đã được phê duyệt bởi ${adminUser.fullName}. Ý kiến duyệt: "Đã phê duyệt nghỉ phép năm theo đúng quy định của Caritas."`,
+            type: 'LEAVE_APPROVED',
+            link: '/employee/requests',
+            isRead: false,
+          },
+        });
+      }
+
+      if (vnxkhoaUser && adminUser) {
+        await prisma.leaveRequest.create({
+          data: {
+            userId: vnxkhoaUser.id,
+            leaveType: 'COMPENSATORY',
+            fromDate: today,
+            toDate: today,
+            daysCount: 1.0,
+            reason: 'Nghỉ bù ngày thứ Bảy trực hỗ trợ cộng đồng tại buôn làng',
+            status: 'APPROVED',
+            approvedById: adminUser.id,
+            reviewNotes: 'Đồng ý duyệt nghỉ bù ngày làm việc cuối tuần thực địa.',
+          },
+        });
+
+        await prisma.notification.create({
+          data: {
+            userId: vnxkhoaUser.id,
+            title: '✓ Đơn xin nghỉ đã được DUYỆT',
+            content: `Nghỉ bù của bạn đã được phê duyệt bởi ${adminUser.fullName}. Ý kiến: "Đồng ý duyệt nghỉ bù ngày làm việc cuối tuần thực địa."`,
+            type: 'LEAVE_APPROVED',
+            link: '/employee/requests',
+            isRead: false,
+          },
+        });
+      }
+
+      if (nv002User) {
+        await prisma.leaveRequest.create({
+          data: {
+            userId: nv002User.id,
+            leaveType: 'SICK',
+            fromDate: today,
+            toDate: today,
+            daysCount: 1.0,
+            reason: 'Bị cảm sốt cần nghỉ dưỡng sức tại nhà',
+            status: 'PENDING',
+          },
+        });
+
+        // Add Admin notification for pending request
+        await prisma.notification.create({
+          data: {
+            targetRole: 'ADMIN',
+            title: `Đơn xin nghỉ mới: ${nv002User.fullName} (${nv002User.employeeCode})`,
+            content: `${nv002User.fullName} vừa nộp đơn Nghỉ ốm đau (1 ngày). Lý do: "Bị cảm sốt cần nghỉ dưỡng sức tại nhà"`,
+            type: 'LEAVE_REQUEST',
+            link: '/admin/requests',
+            isRead: false,
+          },
+        });
+      }
+
+      // Seed Sample Attendance Logs
+      if (nv001User) {
+        const morningCheckIn = new Date(today);
+        morningCheckIn.setHours(7, 55, 0, 0);
+        await prisma.attendance.create({
+          data: {
+            userId: nv001User.id,
+            checkType: 'IN',
+            serverTime: morningCheckIn,
+            latitude: 11.936085,
+            longitude: 108.437142,
+            locationAddress: '09 Nguyễn Trường Tộ, P4, TP. Đà Lạt',
+            nearestLocationName: 'Văn phòng Caritas Đà Lạt (Tòa Giám Mục)',
+            isValidLocation: true,
+            isLate: false,
+            notes: 'Check-in đúng giờ ca sáng',
+          },
+        });
+      }
+
+      if (vnxkhoaUser) {
+        const morningCheckIn = new Date(today);
+        morningCheckIn.setHours(8, 0, 0, 0);
+        await prisma.attendance.create({
+          data: {
+            userId: vnxkhoaUser.id,
+            checkType: 'IN',
+            serverTime: morningCheckIn,
+            latitude: 11.936085,
+            longitude: 108.437142,
+            locationAddress: '09 Nguyễn Trường Tộ, P4, TP. Đà Lạt',
+            nearestLocationName: 'Văn phòng Caritas Đà Lạt (Tòa Giám Mục)',
+            isValidLocation: true,
+            isLate: false,
+            notes: 'Check-in chuẩn ca làm việc',
+          },
+        });
+      }
     }
 
     globalForPrisma.isDbInitialized = true;

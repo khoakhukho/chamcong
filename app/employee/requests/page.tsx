@@ -210,6 +210,48 @@ export default function EmployeeRequestsPage() {
           </div>
         )}
 
+        {/* Latest Reviewed Request Highlight Card */}
+        {requests.find((r) => r.status === 'APPROVED' || r.status === 'REJECTED') && (
+          (() => {
+            const latestReviewed = requests.find((r) => r.status === 'APPROVED' || r.status === 'REJECTED');
+            const isApproved = latestReviewed.status === 'APPROVED';
+            return (
+              <div
+                className={`p-4 rounded-3xl border shadow-sm space-y-2 animate-in fade-in duration-300 ${
+                  isApproved
+                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                    : 'bg-rose-50/80 border-rose-200 text-rose-950'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {isApproved ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                    )}
+                    <h4 className="text-xs font-bold">
+                      {isApproved
+                        ? `✓ Đơn ${getLeaveTypeLabel(latestReviewed.leaveType)} đã được DUYỆT`
+                        : `✕ Đơn ${getLeaveTypeLabel(latestReviewed.leaveType)} ĐÃ BỊ TỪ CHỐI`}
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700">
+                    {formatDateVN(latestReviewed.fromDate)} &rarr; {formatDateVN(latestReviewed.toDate)}
+                  </span>
+                </div>
+
+                {latestReviewed.reviewNotes && (
+                  <div className="bg-white/80 p-2.5 rounded-2xl border border-slate-200/80 text-xs space-y-0.5">
+                    <span className="font-bold text-slate-700">Ý kiến từ Ban Quản Trị / HR:</span>
+                    <p className="text-slate-800 font-medium italic">&ldquo;{latestReviewed.reviewNotes}&rdquo;</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()
+        )}
+
         {/* Messages */}
         {msg && (
           <div
