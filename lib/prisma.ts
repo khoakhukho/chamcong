@@ -121,9 +121,11 @@ export async function ensureDatabaseReady() {
         "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         "userId" INTEGER NOT NULL,
         "shiftId" INTEGER,
+        "locationId" INTEGER,
         "checkType" TEXT NOT NULL,
         "serverTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "clientTime" DATETIME,
+        "clientCapturedTime" DATETIME,
         "latitude" REAL,
         "longitude" REAL,
         "locationAddress" TEXT,
@@ -134,11 +136,13 @@ export async function ensureDatabaseReady() {
         "lateMinutes" INTEGER NOT NULL DEFAULT 0,
         "isEarlyLeave" BOOLEAN NOT NULL DEFAULT false,
         "earlyMinutes" INTEGER NOT NULL DEFAULT 0,
-        "imagePath" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'VALID',
+        "imagePath" TEXT,
         "notes" TEXT,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "Attendance_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-        CONSTRAINT "Attendance_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "Shift" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+        CONSTRAINT "Attendance_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "Shift" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+        CONSTRAINT "Attendance_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location" ("id") ON DELETE SET NULL ON UPDATE CASCADE
       );
     `);
 
@@ -320,6 +324,17 @@ export async function ensureDatabaseReady() {
     `);
     try {
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectFile_projectId_year_month_idx" ON "ProjectFile"("projectId", "year", "month");`);
+    } catch {}
+
+    // Ensure all Attendance columns exist
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Attendance" ADD COLUMN "locationId" INTEGER;`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Attendance" ADD COLUMN "clientCapturedTime" DATETIME;`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Attendance" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'VALID';`);
     } catch {}
 
     // Seed 4 Core Projects
