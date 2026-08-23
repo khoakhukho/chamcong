@@ -121,7 +121,7 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          employeeCode: employeeCode.trim().toLowerCase(),
+          employeeCode: employeeCode.trim().toUpperCase(),
           fullName,
           email,
           otp: otp.trim(),
