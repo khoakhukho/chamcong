@@ -297,22 +297,23 @@ export default function RegisterPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Department */}
+            {/* Department / Project */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                PHÒNG BAN / BAN CHUYÊN TRÁCH
+                DỰ ÁN / BAN CHUYÊN TRÁCH
               </label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-hidden focus:border-red-500"
               >
-                <option value="Ban Giám Đốc">Ban Giám Đốc</option>
-                <option value="Ban Y Tế Bác Ái">Ban Y Tế Bác Ái</option>
+                <option value="PLD - Phát Triển Tự Dân">PLD - Phát Triển Tự Dân</option>
+                <option value="SKTT - Sức Khoẻ Tâm Thần">SKTT - Sức Khoẻ Tâm Thần</option>
                 <option value="Ban Khuyết Tật">Ban Khuyết Tật</option>
                 <option value="Ban Học Bổng & Trẻ Em">Ban Học Bổng & Trẻ Em</option>
+                <option value="Ban Giám Đốc & Điều Hành">Ban Giám Đốc & Điều Hành</option>
                 <option value="Ban Hành Chính & Kế Toán">Ban Hành Chính & Kế Toán</option>
-                <option value="Ban Truyền Thông & Sự Kiện">Ban Truyền Thông & Sự Kiện</option>
+                <option value="Ban Truyền Thông">Ban Truyền Thông</option>
                 <option value="Cơ sở Bác Ái Bảo Lộc">Cơ sở Bác Ái Bảo Lộc</option>
               </select>
             </div>
