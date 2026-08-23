@@ -1,0 +1,149 @@
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
+import { generateMonthlyExcelReport, MonthlyAttendanceData } from '@/lib/excel-export';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user || user.role === 'EMPLOYEE') {
+      return NextResponse.json({ error: 'Không có quyền xuất báo cáo' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString(), 10);
+    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString(), 10);
+
+    const startDate = new Date(year, month - 1, 1, 0, 0, 0);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const totalDays = new Date(year, month, 0).getDate();
+
+    // 1. Fetch all active employees
+    const employees = await prisma.user.findMany({
+      where: { isActive: true },
+      orderBy: [{ department: 'asc' }, { employeeCode: 'asc' }],
+    });
+
+    // 2. Fetch attendances in this month
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        serverTime: { gte: startDate, lte: endDate },
+      },
+      orderBy: { serverTime: 'asc' },
+    });
+
+    // 3. Fetch approved leave requests
+    const leaveRequests = await prisma.leaveRequest.findMany({
+      where: {
+        status: 'APPROVED',
+        fromDate: { lte: endDate },
+        toDate: { gte: startDate },
+      },
+    });
+
+    // 4. Transform data for matrix
+    const reportData: MonthlyAttendanceData = {
+      month,
+      year,
+      totalDays,
+      users: employees.map((emp) => {
+        const empAttendances = attendances.filter((a) => a.userId === emp.id);
+        const empLeaves = leaveRequests.filter((l) => l.userId === emp.id);
+
+        let totalWorkDays = 0;
+        let totalPaidLeave = 0;
+        let totalLateCount = 0;
+        let totalLateMinutes = 0;
+
+        const days = [];
+
+        for (let d = 1; d <= totalDays; d++) {
+          const dateObj = new Date(year, month - 1, d);
+          const dayOfWeek = dateObj.getDay(); // 0 = Sun, 6 = Sat
+
+          const dayStart = new Date(year, month - 1, d, 0, 0, 0);
+          const dayEnd = new Date(year, month - 1, d, 23, 59, 59, 999);
+
+          const dayAtts = empAttendances.filter(
+            (a) => a.serverTime >= dayStart && a.serverTime <= dayEnd
+          );
+          const checkIn = dayAtts.find((a) => a.checkType === 'IN');
+          const checkOut = dayAtts.find((a) => a.checkType === 'OUT');
+
+          // Check leave on this day
+          const leaveOnDay = empLeaves.find(
+            (l) => dayStart >= new Date(l.fromDate.setHours(0,0,0,0)) && dayStart <= new Date(l.toDate.setHours(23,59,59,999))
+          );
+
+          let symbol = '';
+          if (checkIn && checkOut) {
+            symbol = 'X';
+            totalWorkDays += 1;
+          } else if (checkIn || checkOut) {
+            symbol = '1/2';
+            totalWorkDays += 0.5;
+          } else if (leaveOnDay) {
+            if (leaveOnDay.leaveType === 'ANNUAL') {
+              symbol = 'P';
+              totalPaidLeave += 1;
+            } else if (leaveOnDay.leaveType === 'SICK') {
+              symbol = 'Ô';
+            } else if (leaveOnDay.leaveType === 'UNPAID') {
+              symbol = 'Ro';
+            } else {
+              symbol = 'P';
+              totalPaidLeave += 1;
+            }
+          } else if (dayOfWeek !== 0 && dayOfWeek !== 6 && dateObj < new Date()) {
+            // Past weekday without attendance
+            symbol = '';
+          }
+
+          if (checkIn?.isLate) {
+            totalLateCount += 1;
+            totalLateMinutes += checkIn.lateMinutes;
+          }
+
+          days.push({
+            day: d,
+            dayOfWeek,
+            symbol,
+            inTime: checkIn ? checkIn.serverTime.toISOString() : undefined,
+            outTime: checkOut ? checkOut.serverTime.toISOString() : undefined,
+            isLate: checkIn?.isLate,
+            lateMinutes: checkIn?.lateMinutes,
+          });
+        }
+
+        return {
+          id: emp.id,
+          employeeCode: emp.employeeCode,
+          fullName: emp.fullName,
+          department: emp.department,
+          days,
+          totalWorkDays,
+          totalPaidLeave,
+          totalLateCount,
+          totalLateMinutes,
+        };
+      }),
+    };
+
+    const excelBuffer = await generateMonthlyExcelReport(reportData);
+
+    const fileName = `Bang_Cham_Cong_Thang_${month}_${year}_Caritas_Dalat.xlsx`;
+
+    return new NextResponse(new Uint8Array(excelBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+      },
+    });
+  } catch (error: any) {
+    console.error('Monthly excel error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

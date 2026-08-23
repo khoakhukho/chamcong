@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  chamcong-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chamcong-caritas
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:/app/data/chamcong.db
+      - JWT_SECRET=caritas-dalat-chamcong-secure-jwt-key-2026
+      - UPLOAD_DIR=/app/uploads
+      - NEXT_PUBLIC_APP_URL=https://chamcong.caritasdalat.synology.me
+    volumes:
+      # Persistent SQLite Database file on Synology NAS
+      - /volume1/docker/chamcong/data:/app/data
+      # Persistent Watermarked Attendance Photos on Synology NAS
+      - /volume1/docker/chamcong/uploads:/app/uploads
+    networks:
+      - chamcong-net
+
+networks:
+  chamcong-net:
+    driver: bridge

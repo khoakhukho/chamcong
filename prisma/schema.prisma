@@ -1,0 +1,99 @@
+// Prisma schema for CHAMCONG - Caritas Dalat Attendance Webapp
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int            @id @default(autoincrement())
+  employeeCode     String         @unique // e.g., ADMIN01, NV001, NV002
+  fullName         String
+  passwordHash     String
+  phone            String?
+  email            String?
+  department       String?        // e.g., Ban Giám Đốc, Ban Y Tế, Ban Khuyết Tật, Ban Học Bổng, Hành Chính
+  role             String         @default("EMPLOYEE") // "ADMIN", "MANAGER", "EMPLOYEE"
+  telegramId       String?        @unique
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  attendances      Attendance[]
+  leaveRequests    LeaveRequest[] @relation("UserLeaveRequests")
+  approvedRequests LeaveRequest[] @relation("ApprovedRequests")
+}
+
+model Shift {
+  id                  Int          @id @default(autoincrement())
+  name                String       // e.g., "Ca Hành Chính (8:00 - 17:00)"
+  startTime           String       // "08:00"
+  endTime             String       // "17:00"
+  allowedLateMinutes  Int          @default(15)
+  allowedEarlyMinutes Int          @default(15)
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+
+  attendances         Attendance[]
+}
+
+model Location {
+  id           Int      @id @default(autoincrement())
+  name         String   // e.g., "Văn phòng Caritas Đà Lạt (Tòa Giám Mục)"
+  address      String?  // e.g., "09 Nguyễn Trường Tộ, Phường 4, TP. Đà Lạt, Lâm Đồng"
+  latitude     Float    // e.g., 11.9360
+  longitude    Float    // e.g., 108.4370
+  radiusMeters Int      @default(100)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Attendance {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shiftId             Int?
+  shift               Shift?    @relation(fields: [shiftId], references: [id])
+  checkType           String    // "IN" or "OUT"
+  serverTime          DateTime  @default(now())
+  clientTime          DateTime?
+  latitude            Float?
+  longitude           Float?
+  locationAddress     String?
+  nearestLocationName String?
+  distanceMeters      Float?
+  isValidLocation     Boolean   @default(true)
+  isLate              Boolean   @default(false)
+  lateMinutes         Int       @default(0)
+  isEarlyLeave        Boolean   @default(false)
+  earlyMinutes        Int       @default(0)
+  imagePath           String    // e.g., "/uploads/2026/08/att_12345.webp"
+  notes               String?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId, serverTime])
+}
+
+model LeaveRequest {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  leaveType    String    // "ANNUAL", "SICK", "UNPAID", "LATE_EXCUSE"
+  fromDate     DateTime
+  toDate       DateTime
+  daysCount    Float     @default(1.0)
+  reason       String
+  status       String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  approvedById Int?
+  approvedBy   User?     @relation("ApprovedRequests", fields: [approvedById], references: [id])
+  reviewNotes  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId, fromDate])
+}
