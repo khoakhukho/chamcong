@@ -1,0 +1,34 @@
+import { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Caritas Đà Lạt - Cổng Thông Tin & Quản Trị',
+    short_name: 'CaritasDalat',
+    description: 'Hệ thống Cổng Thông Tin, Quản Lý Dự Án, Báo Cáo & Chấm Công Nội Bộ - Caritas Giáo Phận Đà Lạt',
+    start_url: '/chamcong',
+    display: 'standalone',
+    orientation: 'portrait',
+    background_color: '#0F172A',
+    theme_color: '#DC2626',
+    icons: [
+      {
+        src: '/logo.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/logo.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/logo.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+    ],
+  };
+}
