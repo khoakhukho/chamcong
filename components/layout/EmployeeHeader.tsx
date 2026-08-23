@@ -16,6 +16,7 @@ import {
   Sparkles,
   Shield,
 } from 'lucide-react';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface EmployeeHeaderProps {
   user: {
@@ -128,6 +129,9 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
                 Quản Trị
               </Link>
             )}
+
+            {/* Notification Bell */}
+            <NotificationBell />
 
             {/* Profile Avatar Button */}
             <button

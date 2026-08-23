@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getLeaveTypeLabel, formatDateVN } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,22 @@ export async function POST(req: Request) {
         status: 'PENDING',
       },
     });
+
+    // Create Notification for Admin / HR
+    try {
+      const typeLabel = getLeaveTypeLabel(leaveType);
+      await prisma.notification.create({
+        data: {
+          targetRole: 'ADMIN',
+          title: `Đơn xin nghỉ mới: ${user.fullName} (${user.employeeCode})`,
+          content: `${user.fullName} vừa nộp ${typeLabel} (${count} ngày, từ ${formatDateVN(from)} đến ${formatDateVN(to)}). Lý do: "${reason}"`,
+          type: 'LEAVE_REQUEST',
+          link: '/admin/requests',
+        },
+      });
+    } catch (notifErr) {
+      console.warn('Notification creation error:', notifErr);
+    }
 
     return NextResponse.json({
       success: true,

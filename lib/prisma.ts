@@ -161,6 +161,65 @@ export async function ensureDatabaseReady() {
       );
     `);
 
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Notification" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "userId" INTEGER,
+        "targetRole" TEXT,
+        "title" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "type" TEXT NOT NULL,
+        "link" TEXT,
+        "isRead" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Notification_userId_isRead_idx" ON "Notification"("userId", "isRead");`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Notification_targetRole_idx" ON "Notification"("targetRole");`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Announcement" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "title" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "category" TEXT NOT NULL DEFAULT 'GENERAL',
+        "isPinned" BOOLEAN NOT NULL DEFAULT false,
+        "requireAck" BOOLEAN NOT NULL DEFAULT true,
+        "createdById" INTEGER NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Announcement_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Announcement_isPinned_createdAt_idx" ON "Announcement"("isPinned", "createdAt");`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "AnnouncementAck" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "announcementId" INTEGER NOT NULL,
+        "userId" INTEGER NOT NULL,
+        "acknowledgedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "AnnouncementAck_announcementId_fkey" FOREIGN KEY ("announcementId") REFERENCES "Announcement" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "AnnouncementAck_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "AnnouncementAck_announcementId_userId_key" ON "AnnouncementAck"("announcementId", "userId");`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AnnouncementAck_announcementId_idx" ON "AnnouncementAck"("announcementId");`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AnnouncementAck_userId_idx" ON "AnnouncementAck"("userId");`);
+    } catch {}
+
     // 2. Check if admin user exists, if not seed default users & locations
     const userCount = await prisma.user.count();
     if (userCount === 0) {

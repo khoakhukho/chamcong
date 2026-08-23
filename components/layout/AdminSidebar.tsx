@@ -11,6 +11,7 @@ import {
   FileCheck2,
   ListOrdered,
   FileSpreadsheet,
+  Megaphone,
   LogOut,
   Camera,
   ShieldCheck,
@@ -33,6 +34,7 @@ export default function AdminSidebar() {
   const menuItems = [
     { href: '/admin/dashboard', label: 'Bảng Điều Khiển', icon: LayoutDashboard },
     { href: '/admin/attendance', label: 'Nhật Ký Chấm Công', icon: ListOrdered },
+    { href: '/admin/announcements', label: 'Thông Báo & Lịch Nghỉ', icon: Megaphone },
     { href: '/admin/requests', label: 'Duyệt Đơn Từ', icon: FileCheck2 },
     { href: '/admin/reports', label: 'Xuất Báo Cáo Excel', icon: FileSpreadsheet },
     { href: '/admin/employees', label: 'Quản Lý Nhân Sự', icon: Users },
@@ -81,26 +83,32 @@ export default function AdminSidebar() {
           );
         })}
 
-        <div className="pt-4 px-3 py-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-          Phân Hệ Chấm Công
+        <div className="pt-4 border-t border-slate-800/80 my-2">
+          <Link
+            href="/chamcong"
+            className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-400 hover:bg-emerald-950/40 border border-emerald-900/50 transition"
+          >
+            <Camera className="w-4 h-4 shrink-0" />
+            <span>Màn Hình Chấm Công</span>
+          </Link>
         </div>
-        <Link
-          href="/chamcong"
-          className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-400 hover:bg-emerald-950/30 transition border border-emerald-900/40"
-        >
-          <Camera className="w-4 h-4 shrink-0" />
-          <span>Vào Màn Hình Chấm Công</span>
-        </Link>
       </nav>
 
-      {/* Footer / User Profile & Logout */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950/60">
+      {/* Bottom User Info & Logout */}
+      <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between">
+        <div className="flex items-center space-x-2 text-xs">
+          <ShieldCheck className="w-4 h-4 text-red-500" />
+          <span className="font-semibold text-slate-300 truncate max-w-[120px]">
+            Hệ Thống Nội Bộ
+          </span>
+        </div>
+
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-red-950 hover:text-red-300 text-slate-300 text-xs font-semibold transition"
+          title="Đăng xuất"
+          className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-slate-800 transition"
         >
           <LogOut className="w-4 h-4" />
-          <span>Đăng Xuất</span>
         </button>
       </div>
     </aside>

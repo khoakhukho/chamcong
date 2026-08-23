@@ -50,7 +50,7 @@ export async function GET(req: Request) {
       lateMinutes: a.lateMinutes,
       isEarlyLeave: a.isEarlyLeave,
       earlyMinutes: a.earlyMinutes,
-      imagePath: a.imagePath,
+      imagePath: a.imagePath || '',
       notes: a.notes || '',
     }));
 

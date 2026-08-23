@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getLeaveTypeLabel } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,33 @@ export async function PUT(req: Request) {
         reviewNotes: reviewNotes || null,
         approvedById: user.id,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            employeeCode: true,
+          },
+        },
+      },
     });
+
+    // Create Notification targeted directly to the Employee
+    try {
+      const typeLabel = getLeaveTypeLabel(updated.leaveType);
+      const isApproved = status === 'APPROVED';
+      await prisma.notification.create({
+        data: {
+          userId: updated.userId,
+          title: isApproved ? `✓ Đơn xin nghỉ đã được DUYỆT` : `✕ Đơn xin nghỉ ĐÃ BỊ TỪ CHỐI`,
+          content: `${typeLabel} của bạn đã được ${isApproved ? 'phê duyệt' : 'từ chối'} bởi ${user.fullName}. ${reviewNotes ? `Ý kiến / Lý do: "${reviewNotes}"` : ''}`,
+          type: isApproved ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
+          link: '/employee/requests',
+        },
+      });
+    } catch (notifErr) {
+      console.warn('Notification creation error:', notifErr);
+    }
 
     return NextResponse.json({
       success: true,

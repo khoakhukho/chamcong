@@ -10,26 +10,29 @@ datasource db {
 }
 
 model User {
-  id               Int            @id @default(autoincrement())
-  employeeCode     String         @unique // e.g., ADMIN01, NV001, NV002
-  fullName         String
-  passwordHash     String
-  phone            String?
-  email            String?
-  department       String?        // e.g., Ban Giám Đốc, Ban Y Tế, Ban Khuyết Tật, Ban Học Bổng, Hành Chính
-  role             String         @default("EMPLOYEE") // "ADMIN", "ACCOUNTANT", "MANAGER", "EMPLOYEE"
-  contractType     String         @default("FULL_TIME") // "FULL_TIME", "PART_TIME", "CONTRACT"
-  joinDate         DateTime       @default(now())
-  annualLeaveBase  Float          @default(12.0)
-  avatarUrl        String?
-  telegramId       String?        @unique
-  isActive         Boolean        @default(true)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                   Int               @id @default(autoincrement())
+  employeeCode         String            @unique // e.g., vnxkhoa, admin, ketoan
+  fullName             String
+  passwordHash         String
+  phone                String?
+  email                String?
+  department           String?           // e.g., Ban Giám Đốc, Ban Y Tế, Ban Khuyết Tật, Ban Học Bổng, Hành Chính
+  role                 String            @default("EMPLOYEE") // "ADMIN", "ACCOUNTANT", "MANAGER", "EMPLOYEE"
+  contractType         String            @default("FULL_TIME") // "FULL_TIME", "PART_TIME", "CONTRACT"
+  joinDate             DateTime          @default(now())
+  annualLeaveBase      Float             @default(12.0)
+  avatarUrl            String?
+  telegramId           String?           @unique
+  isActive             Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
-  attendances      Attendance[]
-  leaveRequests    LeaveRequest[] @relation("UserLeaveRequests")
-  approvedRequests LeaveRequest[] @relation("ApprovedRequests")
+  attendances          Attendance[]
+  leaveRequests        LeaveRequest[]    @relation("UserLeaveRequests")
+  approvedRequests     LeaveRequest[]    @relation("ApprovedRequests")
+  notifications        Notification[]
+  createdAnnouncements Announcement[]    @relation("CreatedAnnouncements")
+  announcementAcks     AnnouncementAck[]
 }
 
 model Shift {
@@ -46,15 +49,16 @@ model Shift {
 }
 
 model Location {
-  id           Int      @id @default(autoincrement())
-  name         String   // e.g., "Văn phòng Caritas Đà Lạt (Tòa Giám Mục)"
-  address      String?  // e.g., "09 Nguyễn Trường Tộ, Phường 4, TP. Đà Lạt, Lâm Đồng"
-  latitude     Float    // e.g., 11.9360
-  longitude    Float    // e.g., 108.4370
-  radiusMeters Int      @default(100)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String   // e.g., "Văn phòng Caritas Đà Lạt (Tòa Giám Mục)"
+  address     String?
+  latitude    Float
+  longitude   Float
+  radiusMeters Float   @default(150.0) // Allowed check-in radius in meters
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  attendances Attendance[]
 }
 
 model Attendance {
@@ -63,24 +67,36 @@ model Attendance {
   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   shiftId             Int?
   shift               Shift?    @relation(fields: [shiftId], references: [id])
+  locationId          Int?
+  location            Location? @relation(fields: [locationId], references: [id])
+  
   checkType           String    // "IN" or "OUT"
   serverTime          DateTime  @default(now())
-  clientTime          DateTime?
+  clientCapturedTime  DateTime?
+  
+  // Geolocation Data
   latitude            Float?
   longitude           Float?
   locationAddress     String?
-  nearestLocationName String?
   distanceMeters      Float?
   isValidLocation     Boolean   @default(true)
+  nearestLocationName String?
+  
+  // Face / Image Data
+  imagePath           String?   // Local file path or base64 data URL
+  
+  // Evaluation
   isLate              Boolean   @default(false)
   lateMinutes         Int       @default(0)
   isEarlyLeave        Boolean   @default(false)
   earlyMinutes        Int       @default(0)
-  imagePath           String    // e.g., "/uploads/2026/08/att_12345.webp"
+  status              String    @default("VALID") // "VALID", "INVALID", "PENDING_REVIEW"
+  
   notes               String?
   createdAt           DateTime  @default(now())
 
   @@index([userId, serverTime])
+  @@index([serverTime])
 }
 
 model LeaveRequest {
@@ -110,4 +126,52 @@ model EmailOtp {
   createdAt DateTime @default(now())
 
   @@index([email, code])
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     // If targeted to a specific user
+  targetRole String?  // "ADMIN", "ACCOUNTANT", "MANAGER", "EMPLOYEE", "ALL"
+  title      String
+  content    String
+  type       String   // "LEAVE_REQUEST", "LEAVE_APPROVED", "LEAVE_REJECTED", "ANNOUNCEMENT", "SYSTEM"
+  link       String?  // Action URL
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([targetRole])
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  category    String   @default("GENERAL") // "HOLIDAY", "SCHEDULE", "POLICY", "EVENT", "GENERAL"
+  isPinned    Boolean  @default(false)
+  requireAck  Boolean  @default(true)
+  createdById Int
+  createdBy   User     @relation("CreatedAnnouncements", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  acknowledgments AnnouncementAck[]
+
+  @@index([isPinned, createdAt])
+}
+
+model AnnouncementAck {
+  id             Int          @id @default(autoincrement())
+  announcementId Int
+  userId         Int
+  acknowledgedAt DateTime     @default(now())
+
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
 }

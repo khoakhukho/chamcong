@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import AdminSidebar from '@/components/layout/AdminSidebar';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +34,11 @@ export default async function AdminLayout({
             </span>
           </div>
 
-          <div className="text-xs text-slate-400 font-medium">
-            Hệ Thống Chấm Công Caritas Đà Lạt
+          <div className="flex items-center space-x-3">
+            <NotificationBell />
+            <div className="text-xs text-slate-400 font-medium hidden sm:block">
+              Hệ Thống Chấm Công Caritas Đà Lạt
+            </div>
           </div>
         </header>
 

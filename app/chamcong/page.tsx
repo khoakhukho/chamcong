@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EmployeeHeader from '@/components/layout/EmployeeHeader';
 import CameraCapture from '@/components/camera/CameraCapture';
+import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import {
   LogIn,
   LogOut,
@@ -267,6 +268,9 @@ export default function ChamCongPage() {
       <EmployeeHeader user={user || { fullName: 'Nhân Viên Caritas', employeeCode: 'NV', role: 'EMPLOYEE' }} />
 
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-5 space-y-4">
+        {/* Broadcast Announcement Banner with Mandatory Read Ack */}
+        <AnnouncementBanner />
+
         {/* Offline & Sync Status Banner */}
         {!isOnline && (
           <div className="p-3.5 rounded-2xl bg-amber-500 text-slate-950 text-xs font-bold flex items-center justify-between shadow-md">
