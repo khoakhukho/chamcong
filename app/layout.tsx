@@ -2,11 +2,22 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Chấm Công Nội Bộ - Caritas Đà Lạt',
+  title: 'Chấm Công - Caritas Đà Lạt',
   description: 'Hệ thống webapp chấm công trực quan qua ảnh chụp watermark & định vị GPS - Caritas Giáo Phận Đà Lạt',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/logo.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Caritas Chấm Công',
   },
 };
 

@@ -56,9 +56,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10">
         {/* Organization Brand Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-red-700 text-white font-black text-2xl rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-900/30">
-            C
-          </div>
+          <img
+            src="/logo.png"
+            alt="Logo Caritas Đà Lạt"
+            className="w-20 h-20 rounded-2xl object-contain mx-auto mb-4 bg-white p-1.5 shadow-xl shadow-red-950/50 border border-slate-700"
+          />
           <h1 className="text-xl font-extrabold text-white tracking-tight">
             CARITAS ĐÀ LẠT
           </h1>

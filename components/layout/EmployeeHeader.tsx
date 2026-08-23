@@ -39,9 +39,11 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
       {/* Top Banner */}
       <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-            C
-          </div>
+          <img
+            src="/logo.png"
+            alt="Logo Caritas Đà Lạt"
+            className="w-10 h-10 rounded-xl object-contain shadow-xs border border-slate-100 bg-white p-0.5"
+          />
           <div>
             <h1 className="text-sm font-bold text-slate-900 leading-tight">
               CARITAS ĐÀ LẠT

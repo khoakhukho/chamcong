@@ -44,9 +44,11 @@ export default function AdminSidebar() {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col shrink-0 min-h-screen">
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-800 flex items-center space-x-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-red-950/50">
-          C
-        </div>
+        <img
+          src="/logo.png"
+          alt="Logo Caritas Đà Lạt"
+          className="w-10 h-10 rounded-xl object-contain shadow-lg bg-white p-0.5"
+        />
         <div>
           <h2 className="text-sm font-bold text-white tracking-wide">CARITAS ĐÀ LẠT</h2>
           <span className="text-[10px] font-semibold uppercase tracking-wider bg-red-950 text-red-400 border border-red-800/80 px-1.5 py-0.5 rounded">
