@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma, { ensureDatabaseReady } from '@/lib/prisma';
 import { comparePassword, setSessionCookie } from '@/lib/auth';
 
 export async function POST(req: Request) {
@@ -14,6 +14,8 @@ export async function POST(req: Request) {
     }
 
     const codeClean = employeeCode.trim().toUpperCase();
+
+    await ensureDatabaseReady();
 
     const user = await prisma.user.findUnique({
       where: { employeeCode: codeClean },

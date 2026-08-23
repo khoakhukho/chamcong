@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
-import prisma from './prisma';
+import prisma, { ensureDatabaseReady } from './prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'caritas-dalat-chamcong-secure-jwt-key-2026';
 const COOKIE_NAME = 'chamcong_session';
@@ -37,39 +37,46 @@ export function verifyToken(token: string): UserSession | null {
 }
 
 export async function getCurrentUser(): Promise<UserSession | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+    if (!token) return null;
 
-  const session = verifyToken(token);
-  if (!session) return null;
+    const session = verifyToken(token);
+    if (!session) return null;
 
-  // Verify in DB to ensure user is active
-  const user = await prisma.user.findUnique({
-    where: { id: session.id },
-    select: {
-      id: true,
-      employeeCode: true,
-      fullName: true,
-      role: true,
-      department: true,
-      email: true,
-      phone: true,
-      isActive: true,
-    },
-  });
+    await ensureDatabaseReady();
 
-  if (!user || !user.isActive) return null;
+    // Verify in DB to ensure user is active
+    const user = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: {
+        id: true,
+        employeeCode: true,
+        fullName: true,
+        role: true,
+        department: true,
+        email: true,
+        phone: true,
+        isActive: true,
+      },
+    });
 
-  return {
-    id: user.id,
-    employeeCode: user.employeeCode,
-    fullName: user.fullName,
-    role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
-    department: user.department,
-    email: user.email,
-    phone: user.phone,
-  };
+    if (!user || !user.isActive) return null;
+
+    return {
+      id: user.id,
+      employeeCode: user.employeeCode,
+      fullName: user.fullName,
+      role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
+      department: user.department,
+      email: user.email,
+      phone: user.phone,
+    };
+  } catch (err) {
+    console.error('getCurrentUser error:', err);
+    return null;
+  }
 }
 
 export async function setSessionCookie(session: UserSession): Promise<void> {
@@ -85,6 +92,10 @@ export async function setSessionCookie(session: UserSession): Promise<void> {
 }
 
 export async function clearSessionCookie(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete(COOKIE_NAME);
+  } catch (err) {
+    console.error('clearSessionCookie error:', err);
+  }
 }
