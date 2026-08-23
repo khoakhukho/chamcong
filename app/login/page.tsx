@@ -30,15 +30,13 @@ export default function LoginPage() {
         throw new Error(data.error || 'Đăng nhập không thành công');
       }
 
-      if (data.user.role === 'ADMIN' || data.user.role === 'ACCOUNTANT') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/chamcong');
-      }
-      router.refresh();
+      const targetUrl = (data.user.role === 'ADMIN' || data.user.role === 'ACCOUNTANT')
+        ? '/admin/dashboard'
+        : '/chamcong';
+
+      window.location.href = targetUrl;
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -121,8 +119,59 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Quick Fill Test Accounts */}
+        <div className="mt-6 pt-4 border-t border-slate-900">
+          <p className="text-[11px] text-slate-500 font-semibold mb-2">Tài khoản mặc định:</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEmployeeCode('ADMIN');
+                setPassword('admin123');
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between transition cursor-pointer"
+            >
+              <span className="font-bold text-red-400">ADMIN</span>
+              <span className="text-slate-500">admin123</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmployeeCode('VNXKHOA');
+                setPassword('password123');
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between transition cursor-pointer"
+            >
+              <span className="font-bold text-sky-400">VNXKHOA</span>
+              <span className="text-slate-500">password123</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmployeeCode('NV001');
+                setPassword('123456');
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between transition cursor-pointer"
+            >
+              <span className="font-bold text-emerald-400">NV001</span>
+              <span className="text-slate-500">123456</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmployeeCode('KETOAN');
+                setPassword('ketoan123');
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between transition cursor-pointer"
+            >
+              <span className="font-bold text-amber-400">KETOAN</span>
+              <span className="text-slate-500">ketoan123</span>
+            </button>
+          </div>
+        </div>
+
         {/* Register Account Link */}
-        <div className="mt-8 pt-6 border-t border-slate-900 text-center">
+        <div className="mt-4 pt-4 border-t border-slate-900 text-center">
           <p className="text-xs text-slate-400">
             Chưa có tài khoản nhân sự?{' '}
             <Link

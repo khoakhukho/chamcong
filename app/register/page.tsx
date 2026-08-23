@@ -138,11 +138,9 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Đăng ký không thành công.');
       }
 
-      router.push('/chamcong');
-      router.refresh();
+      window.location.href = '/chamcong';
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
