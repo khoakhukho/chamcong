@@ -12,6 +12,7 @@ import {
   ListOrdered,
   FileSpreadsheet,
   Megaphone,
+  FolderKanban,
   LogOut,
   Camera,
   ShieldCheck,
@@ -34,6 +35,7 @@ export default function AdminSidebar() {
   const menuItems = [
     { href: '/admin/dashboard', label: 'Bảng Điều Khiển', icon: LayoutDashboard },
     { href: '/admin/attendance', label: 'Nhật Ký Chấm Công', icon: ListOrdered },
+    { href: '/admin/projects', label: 'Quản Lý Dự Án & Báo Cáo', icon: FolderKanban },
     { href: '/admin/announcements', label: 'Thông Báo & Lịch Nghỉ', icon: Megaphone },
     { href: '/admin/requests', label: 'Duyệt Đơn Từ', icon: FileCheck2 },
     { href: '/admin/reports', label: 'Xuất Báo Cáo Excel', icon: FileSpreadsheet },

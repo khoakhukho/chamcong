@@ -33,6 +33,12 @@ model User {
   notifications        Notification[]
   createdAnnouncements Announcement[]    @relation("CreatedAnnouncements")
   announcementAcks     AnnouncementAck[]
+
+  // Projects Relations
+  projectMemberships   ProjectMember[]
+  submittedReports     ProjectReport[]   @relation("UserSubmittedReports")
+  approvedReports      ProjectReport[]   @relation("ApprovedReports")
+  uploadedFiles        ProjectFile[]
 }
 
 model Shift {
@@ -134,7 +140,7 @@ model Notification {
   targetRole String?  // "ADMIN", "ACCOUNTANT", "MANAGER", "EMPLOYEE", "ALL"
   title      String
   content    String
-  type       String   // "LEAVE_REQUEST", "LEAVE_APPROVED", "LEAVE_REJECTED", "ANNOUNCEMENT", "SYSTEM"
+  type       String   // "LEAVE_REQUEST", "LEAVE_APPROVED", "LEAVE_REJECTED", "ANNOUNCEMENT", "PROJECT_REPORT", "SYSTEM"
   link       String?  // Action URL
   isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -174,4 +180,93 @@ model AnnouncementAck {
   @@unique([announcementId, userId])
   @@index([announcementId])
   @@index([userId])
+}
+
+// ==================== PHASE 1: PROJECTS & REPORTS ====================
+
+model Project {
+  id           Int             @id @default(autoincrement())
+  code         String          @unique // "PLD", "SKTT", "KHUYT_TAT", "HOC_BONG"
+  name         String          // e.g. "Phát Triển Tự Dân"
+  description  String?
+  nasPath      String          @default("/volume1/CaritasData/")
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  members      ProjectMember[]
+  reports      ProjectReport[]
+  files        ProjectFile[]
+}
+
+model ProjectMember {
+  id            Int      @id @default(autoincrement())
+  projectId     Int
+  userId        Int
+  roleInProject String   @default("STAFF") // "COORDINATOR", "STAFF"
+  joinedAt      DateTime @default(now())
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectReport {
+  id           Int                  @id @default(autoincrement())
+  projectId    Int
+  userId       Int
+  month        Int                  // 1..12
+  year         Int                  // e.g. 2026
+  title        String
+  summary      String?
+  wordDocUrl   String?              // URL path to Word document (.docx/.doc)
+  wordDocName  String?              // Original file name
+  wordDocSize  Int?                 // File size in bytes
+  status       String               @default("SUBMITTED") // "SUBMITTED", "APPROVED", "REVISION_REQUESTED"
+  approvedById Int?
+  reviewNotes  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user         User                 @relation("UserSubmittedReports", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy   User?                @relation("ApprovedReports", fields: [approvedById], references: [id])
+  photos       ProjectReportPhoto[]
+
+  @@index([projectId, year, month])
+  @@index([userId])
+}
+
+model ProjectReportPhoto {
+  id        Int           @id @default(autoincrement())
+  reportId  Int
+  photoUrl  String        // Local path or base64 WebP image
+  caption   String?
+  createdAt DateTime      @default(now())
+
+  report    ProjectReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+model ProjectFile {
+  id           Int      @id @default(autoincrement())
+  projectId    Int
+  uploadedById Int
+  fileName     String
+  fileUrl      String
+  fileType     String   @default("DOCUMENT") // "DOCUMENT", "IMAGE", "SPREADSHEET", "REPORT"
+  fileSize     Int      @default(0)
+  month        Int?
+  year         Int?
+  category     String   @default("GENERAL")
+  createdAt    DateTime @default(now())
+
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([projectId, year, month])
 }

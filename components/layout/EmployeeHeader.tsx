@@ -15,6 +15,7 @@ import {
   X,
   Sparkles,
   Shield,
+  FolderKanban,
 } from 'lucide-react';
 import NotificationBell from '@/components/notifications/NotificationBell';
 
@@ -95,6 +96,7 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
 
   const navItems = [
     { href: '/chamcong', label: 'Chấm Công', icon: Camera },
+    { href: '/employee/projects', label: 'Dự Án & Báo Cáo', icon: FolderKanban },
     { href: '/employee/history', label: 'Lịch Sử', icon: History },
     { href: '/employee/requests', label: 'Đơn Từ', icon: FileText },
   ];

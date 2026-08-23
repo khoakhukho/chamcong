@@ -220,6 +220,145 @@ export async function ensureDatabaseReady() {
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AnnouncementAck_userId_idx" ON "AnnouncementAck"("userId");`);
     } catch {}
 
+    // Phase 1: Projects DDL
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Project" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "code" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "description" TEXT,
+        "nasPath" TEXT NOT NULL DEFAULT '/volume1/CaritasData/',
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Project_code_key" ON "Project"("code");`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ProjectMember" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "projectId" INTEGER NOT NULL,
+        "userId" INTEGER NOT NULL,
+        "roleInProject" TEXT NOT NULL DEFAULT 'STAFF',
+        "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ProjectMember_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "ProjectMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "ProjectMember_projectId_userId_key" ON "ProjectMember"("projectId", "userId");`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectMember_projectId_idx" ON "ProjectMember"("projectId");`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectMember_userId_idx" ON "ProjectMember"("userId");`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ProjectReport" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "projectId" INTEGER NOT NULL,
+        "userId" INTEGER NOT NULL,
+        "month" INTEGER NOT NULL,
+        "year" INTEGER NOT NULL,
+        "title" TEXT NOT NULL,
+        "summary" TEXT,
+        "wordDocUrl" TEXT,
+        "wordDocName" TEXT,
+        "wordDocSize" INTEGER,
+        "status" TEXT NOT NULL DEFAULT 'SUBMITTED',
+        "approvedById" INTEGER,
+        "reviewNotes" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ProjectReport_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "ProjectReport_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "ProjectReport_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectReport_projectId_year_month_idx" ON "ProjectReport"("projectId", "year", "month");`);
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectReport_userId_idx" ON "ProjectReport"("userId");`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ProjectReportPhoto" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "reportId" INTEGER NOT NULL,
+        "photoUrl" TEXT NOT NULL,
+        "caption" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ProjectReportPhoto_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "ProjectReport" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectReportPhoto_reportId_idx" ON "ProjectReportPhoto"("reportId");`);
+    } catch {}
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ProjectFile" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "projectId" INTEGER NOT NULL,
+        "uploadedById" INTEGER NOT NULL,
+        "fileName" TEXT NOT NULL,
+        "fileUrl" TEXT NOT NULL,
+        "fileType" TEXT NOT NULL DEFAULT 'DOCUMENT',
+        "fileSize" INTEGER NOT NULL DEFAULT 0,
+        "month" INTEGER,
+        "year" INTEGER,
+        "category" TEXT NOT NULL DEFAULT 'GENERAL',
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ProjectFile_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "ProjectFile_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    try {
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProjectFile_projectId_year_month_idx" ON "ProjectFile"("projectId", "year", "month");`);
+    } catch {}
+
+    // Seed 4 Core Projects
+    const projectCount = await prisma.project.count();
+    if (projectCount === 0) {
+      await prisma.project.createMany({
+        data: [
+          {
+            code: 'PLD',
+            name: 'Phát Triển Tự Dân (Lãnh đạo tự dân)',
+            description: 'Dự án Nâng cao năng lực và phát triển cộng đồng tự quản',
+            nasPath: '/volume1/CaritasData/DU_AN_PLD/',
+            isActive: true,
+          },
+          {
+            code: 'SKTT',
+            name: 'Sức Khoẻ Tâm Thần',
+            description: 'Dự án Chăm sóc và phục hồi chức năng tâm thần cộng đồng',
+            nasPath: '/volume1/CaritasData/DU_AN_TAM_THAN/',
+            isActive: true,
+          },
+          {
+            code: 'KHUYT_TAT',
+            name: 'Ban Khuyết Tật',
+            description: 'Dự án Hỗ trợ hòa nhập và sinh kế cho người khuyết tật',
+            nasPath: '/volume1/CaritasData/DU_AN_KHUYT_TAT/',
+            isActive: true,
+          },
+          {
+            code: 'HOC_BONG',
+            name: 'Ban Học Bổng',
+            description: 'Dự án Học bổng khuyến học cho học sinh, sinh viên nghèo hiếu học',
+            nasPath: '/volume1/CaritasData/DU_AN_HOC_BONG/',
+            isActive: true,
+          },
+        ],
+      });
+    }
+
     // 2. Check if admin user exists, if not seed default users & locations
     const userCount = await prisma.user.count();
     if (userCount === 0) {
