@@ -12,7 +12,17 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { checkType, imageData, latitude, longitude, clientLocationAddress, notes } = body;
+    const {
+      checkType,
+      imageData,
+      latitude,
+      longitude,
+      locationAddress,
+      clientLocationAddress,
+      clientCapturedTime,
+      isOfflineSync,
+      notes,
+    } = body;
 
     if (!checkType || !['IN', 'OUT'].includes(checkType)) {
       return NextResponse.json({ error: 'Loại chấm công không hợp lệ (IN/OUT)' }, { status: 400 });
@@ -23,6 +33,8 @@ export async function POST(req: Request) {
     }
 
     const serverNow = new Date();
+    // If synced offline, use the actual moment the employee captured the photo
+    const effectiveTime = clientCapturedTime ? new Date(clientCapturedTime) : serverNow;
 
     // 1. Check Geofencing with Database Locations
     const locations = await prisma.location.findMany({
@@ -32,7 +44,7 @@ export async function POST(req: Request) {
     let isValidLocation = true;
     let nearestLocationName: string | null = null;
     let distanceMeters = 0;
-    let finalAddress = clientLocationAddress || '';
+    let finalAddress = locationAddress || clientLocationAddress || '';
 
     if (latitude != null && longitude != null) {
       const geoResult = checkGeofence({ latitude, longitude }, locations);
@@ -48,7 +60,7 @@ export async function POST(req: Request) {
       finalAddress = 'Không có tọa độ GPS';
     }
 
-    // 2. Shift & Late/Early Calculation
+    // 2. Shift & Late/Early Calculation based on effective punch time
     const defaultShift = await prisma.shift.findFirst({
       where: { isActive: true },
     });
@@ -66,7 +78,7 @@ export async function POST(req: Request) {
         minute: 'numeric',
         hour12: false,
       });
-      const parts = gmt7Formatter.formatToParts(serverNow);
+      const parts = gmt7Formatter.formatToParts(effectiveTime);
       const currentHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
       const currentMinute = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
       const currentTotalMinutes = currentHour * 60 + currentMinute;
@@ -95,13 +107,20 @@ export async function POST(req: Request) {
     // 3. Save Compressed Image
     const savedImage = await processAndSaveAttendanceImage(imageData, user.id);
 
-    // 4. Save Attendance in Database
+    // 4. Notes formatting for offline sync
+    let finalNotes = notes || '';
+    if (isOfflineSync) {
+      const syncNote = `[Chấm công Offline lúc ${effectiveTime.toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} - Đã tự động đồng bộ]`;
+      finalNotes = finalNotes ? `${syncNote} ${finalNotes}` : syncNote;
+    }
+
+    // 5. Save Attendance in Database
     const attendance = await prisma.attendance.create({
       data: {
         userId: user.id,
         shiftId: defaultShift?.id,
         checkType,
-        serverTime: serverNow,
+        serverTime: effectiveTime,
         latitude: latitude ?? null,
         longitude: longitude ?? null,
         locationAddress: finalAddress,
@@ -113,13 +132,16 @@ export async function POST(req: Request) {
         isEarlyLeave,
         earlyMinutes,
         imagePath: savedImage.urlPath,
-        notes: notes || null,
+        notes: finalNotes || null,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: checkType === 'IN' ? 'Chấm công VÀO CA thành công!' : 'Chấm công RA CA thành công!',
+      message:
+        checkType === 'IN'
+          ? 'Chấm công VÀO CA thành công!'
+          : 'Chấm công RA CA thành công!',
       attendance: {
         id: attendance.id,
         checkType: attendance.checkType,

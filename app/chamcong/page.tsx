@@ -16,15 +16,29 @@ import {
   CheckCircle2,
   Sparkles,
   Camera,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  CloudUpload,
 } from 'lucide-react';
 import { formatDateTimeVN, formatTimeVN } from '@/lib/utils';
 import { LocationTarget } from '@/lib/geofencing';
+import {
+  saveOfflineAttendance,
+  getPendingOfflineAttendances,
+  syncAllOfflineAttendances,
+} from '@/lib/offline-store';
 
 export default function ChamCongPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [locations, setLocations] = useState<LocationTarget[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Connectivity & Offline Sync State
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Live Current Time
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -36,16 +50,50 @@ export default function ChamCongPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Check pending offline count
+  const refreshPendingCount = useCallback(async () => {
+    try {
+      const list = await getPendingOfflineAttendances();
+      setPendingSyncCount(list.length);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Trigger sync of pending records
+  const handleTriggerSync = useCallback(async () => {
+    if (!navigator.onLine || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const result = await syncAllOfflineAttendances();
+      if (result.successCount > 0) {
+        setSuccessMessage(
+          `Đã đồng bộ thành công ${result.successCount} lượt chấm công ngoại tuyến lên hệ thống!`
+        );
+        await loadData();
+      }
+      await refreshPendingCount();
+    } catch (err: any) {
+      console.error('Sync error:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isSyncing, refreshPendingCount]);
+
   // Fetch Session, Locations, Today Status
   const loadData = useCallback(async () => {
     try {
       const meRes = await fetch('/api/auth/me');
       if (!meRes.ok) {
-        router.push('/login');
-        return;
+        // Only redirect to login if online and rejected
+        if (navigator.onLine) {
+          router.push('/login');
+          return;
+        }
+      } else {
+        const meData = await meRes.json();
+        setUser(meData.user);
       }
-      const meData = await meRes.json();
-      setUser(meData.user);
 
       // Locations
       const locRes = await fetch('/api/locations');
@@ -61,14 +109,32 @@ export default function ChamCongPage() {
         setTodayStatus(sData);
       }
     } catch (err) {
-      console.error(err);
+      console.error('loadData error (may be offline):', err);
     } finally {
       setLoading(false);
     }
   }, [router]);
 
   useEffect(() => {
+    // Initial online status
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+      refreshPendingCount();
+    }
+
     loadData();
+
+    // Online / Offline Listeners
+    const handleOnline = () => {
+      setIsOnline(true);
+      handleTriggerSync();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     // Clock ticker
     const timer = setInterval(() => {
@@ -84,8 +150,12 @@ export default function ChamCongPage() {
       );
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [loadData]);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(timer);
+    };
+  }, [loadData, handleTriggerSync, refreshPendingCount]);
 
   const handleCaptureComplete = async (capturedData: any) => {
     if (!activeModal) return;
@@ -93,6 +163,36 @@ export default function ChamCongPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    const capturedTimestamp = new Date().toISOString();
+
+    // If device is offline, save directly to IndexedDB
+    if (!navigator.onLine) {
+      try {
+        await saveOfflineAttendance({
+          userId: user?.id || 1,
+          employeeCode: user?.employeeCode || 'NV',
+          checkType: activeModal,
+          imageData: capturedData.imageData,
+          latitude: capturedData.latitude,
+          longitude: capturedData.longitude,
+          locationAddress: capturedData.locationAddress,
+          capturedAt: capturedTimestamp,
+        });
+
+        await refreshPendingCount();
+        setSuccessMessage(
+          `✓ ĐÃ LƯU CHẤM CÔNG NGOẠI TUYẾN! Tọa độ GPS và ảnh đã lưu an toàn trên máy, sẽ tự động đồng bộ ngay khi có mạng.`
+        );
+        setActiveModal(null);
+      } catch (err: any) {
+        setErrorMessage('Lỗi lưu offline: ' + err.message);
+      } finally {
+        setSubmitLoading(false);
+      }
+      return;
+    }
+
+    // If online, attempt server post, fallback to IndexedDB if network drops
     try {
       const res = await fetch('/api/attendance/check-in', {
         method: 'POST',
@@ -102,7 +202,8 @@ export default function ChamCongPage() {
           imageData: capturedData.imageData,
           latitude: capturedData.latitude,
           longitude: capturedData.longitude,
-          clientLocationAddress: capturedData.locationAddress,
+          locationAddress: capturedData.locationAddress,
+          clientCapturedTime: capturedTimestamp,
         }),
       });
 
@@ -115,13 +216,32 @@ export default function ChamCongPage() {
       setActiveModal(null);
       await loadData();
     } catch (err: any) {
-      setErrorMessage(err.message);
+      console.warn('Online submission failed, falling back to IndexedDB offline store:', err);
+      try {
+        await saveOfflineAttendance({
+          userId: user?.id || 1,
+          employeeCode: user?.employeeCode || 'NV',
+          checkType: activeModal,
+          imageData: capturedData.imageData,
+          latitude: capturedData.latitude,
+          longitude: capturedData.longitude,
+          locationAddress: capturedData.locationAddress,
+          capturedAt: capturedTimestamp,
+        });
+        await refreshPendingCount();
+        setSuccessMessage(
+          `✓ ĐÃ LƯU CHẤM CÔNG OFFLINE! Do kết nối mạng gián đoạn, dữ liệu đã được lưu trên máy và sẽ tự động gửi lên khi có mạng ổn định.`
+        );
+        setActiveModal(null);
+      } catch (offlineErr: any) {
+        setErrorMessage(err.message || offlineErr.message);
+      }
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  if (loading || !user) {
+  if (loading && !user) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
         <div className="text-center space-y-3">
@@ -138,13 +258,45 @@ export default function ChamCongPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <EmployeeHeader user={user} />
+      <EmployeeHeader user={user || { fullName: 'Nhân Viên Caritas', employeeCode: 'NV', role: 'EMPLOYEE' }} />
 
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-5 space-y-4">
+        {/* Offline & Sync Status Banner */}
+        {!isOnline && (
+          <div className="p-3.5 rounded-2xl bg-amber-500 text-slate-950 text-xs font-bold flex items-center justify-between shadow-md">
+            <div className="flex items-center space-x-2">
+              <WifiOff className="w-4 h-4 shrink-0" />
+              <span>Chế độ Ngoại Tuyến (Không có Internet)</span>
+            </div>
+            <span className="text-[10px] bg-slate-950 text-white px-2 py-0.5 rounded-full">
+              Sẵn sàng chấm công
+            </span>
+          </div>
+        )}
+
+        {pendingSyncCount > 0 && (
+          <div className="p-3.5 rounded-2xl bg-slate-900 text-white border border-slate-800 text-xs flex items-center justify-between shadow-lg">
+            <div className="flex items-center space-x-2">
+              <CloudUpload className="w-4 h-4 text-sky-400 shrink-0" />
+              <span>
+                Có <strong>{pendingSyncCount}</strong> lượt chấm công chờ đồng bộ
+              </span>
+            </div>
+            <button
+              onClick={handleTriggerSync}
+              disabled={isSyncing || !isOnline}
+              className="px-3 py-1 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-bold rounded-lg text-[11px] flex items-center space-x-1 transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Đang gửi...' : 'Đồng bộ'}</span>
+            </button>
+          </div>
+        )}
+
         {/* Realtime Live Clock Card */}
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-3xl p-6 shadow-xl border border-slate-800 text-center relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-36 h-36 bg-red-600/20 rounded-full blur-2xl pointer-events-none" />
-          
+
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">
             Thời Gian Thực Tế (GMT+7)
           </p>
@@ -178,52 +330,61 @@ export default function ChamCongPage() {
         {successMessage && (
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-3 shadow-xs">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span className="font-medium">{successMessage}</span>
+            <span className="font-medium leading-relaxed">{successMessage}</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-3 shadow-xs">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center space-x-3 shadow-xs">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
             <span className="font-medium">{errorMessage}</span>
           </div>
         )}
 
-        {/* Today Attendance Status Overview */}
-        <div className="bg-white rounded-3xl p-5 shadow-xs border border-slate-200/80 space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5">
-            <Clock className="w-4 h-4 text-red-600" />
-            <span>Trạng Thái Chấm Công Hôm Nay</span>
-          </h2>
+        {/* Today Attendance Status Overview Card */}
+        <div className="bg-white rounded-3xl p-5 shadow-xs border border-slate-200 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+              <Clock className="w-4 h-4 text-red-600" />
+              <span>Trạng Thái Chấm Công Hôm Nay</span>
+            </h3>
+            <span className="text-[11px] font-semibold text-slate-400 font-mono">
+              {new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                day: '2-digit',
+                month: '2-digit',
+              }).format(new Date())}
+            </span>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* Check-In Status Card */}
-            <div className={`p-4 rounded-2xl border transition ${
-              checkInRecord
-                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
-                : 'bg-slate-50 border-slate-200 text-slate-700'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Vào Ca (In)
-                </span>
-                <LogIn className={`w-4 h-4 ${checkInRecord ? 'text-emerald-600' : 'text-slate-400'}`} />
+            {/* Check-In Status */}
+            <div
+              className={`p-3.5 rounded-2xl border transition ${
+                checkInRecord
+                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                  : 'bg-slate-50 border-slate-100 text-slate-600'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                <span>VÀO CA (IN)</span>
+                <LogIn className="w-3.5 h-3.5" />
               </div>
               {checkInRecord ? (
                 <div>
-                  <div className="text-lg font-black font-mono text-emerald-700">
+                  <div className="text-lg font-black font-mono">
                     {formatTimeVN(checkInRecord.serverTime)}
                   </div>
-                  <div className="mt-1 text-[11px] space-y-0.5">
+                  <div className="text-[11px] mt-1 space-y-0.5">
                     {checkInRecord.isLate ? (
                       <span className="text-amber-700 font-bold block">
-                        ⚠ Trễ {checkInRecord.lateMinutes}p
+                        Trễ {checkInRecord.lateMinutes} phút
                       </span>
                     ) : (
                       <span className="text-emerald-700 font-bold block">✓ Đúng giờ</span>
                     )}
                     <span className="text-slate-500 block truncate text-[10px]">
-                      {checkInRecord.nearestLocationName || 'Đúng vị trí'}
+                      {checkInRecord.locationAddress || 'Đã ghi nhận GPS'}
                     </span>
                   </div>
                 </div>
@@ -234,33 +395,33 @@ export default function ChamCongPage() {
               )}
             </div>
 
-            {/* Check-Out Status Card */}
-            <div className={`p-4 rounded-2xl border transition ${
-              checkOutRecord
-                ? 'bg-blue-50/60 border-blue-200 text-blue-950'
-                : 'bg-slate-50 border-slate-200 text-slate-700'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Ra Ca (Out)
-                </span>
-                <LogOut className={`w-4 h-4 ${checkOutRecord ? 'text-blue-600' : 'text-slate-400'}`} />
+            {/* Check-Out Status */}
+            <div
+              className={`p-3.5 rounded-2xl border transition ${
+                checkOutRecord
+                  ? 'bg-blue-50/70 border-blue-200 text-blue-900'
+                  : 'bg-slate-50 border-slate-100 text-slate-600'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                <span>RA CA (OUT)</span>
+                <LogOut className="w-3.5 h-3.5" />
               </div>
               {checkOutRecord ? (
                 <div>
-                  <div className="text-lg font-black font-mono text-blue-700">
+                  <div className="text-lg font-black font-mono">
                     {formatTimeVN(checkOutRecord.serverTime)}
                   </div>
-                  <div className="mt-1 text-[11px] space-y-0.5">
+                  <div className="text-[11px] mt-1 space-y-0.5">
                     {checkOutRecord.isEarlyLeave ? (
                       <span className="text-amber-700 font-bold block">
-                        ⚠ Về sớm {checkOutRecord.earlyMinutes}p
+                        Về sớm {checkOutRecord.earlyMinutes} phút
                       </span>
                     ) : (
                       <span className="text-blue-700 font-bold block">✓ Hoàn thành ca</span>
                     )}
                     <span className="text-slate-500 block truncate text-[10px]">
-                      {checkOutRecord.nearestLocationName || 'Đúng vị trí'}
+                      {checkOutRecord.locationAddress || 'Đã ghi nhận GPS'}
                     </span>
                   </div>
                 </div>
@@ -352,7 +513,7 @@ export default function ChamCongPage() {
       {activeModal && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-3">
           <CameraCapture
-            user={user}
+            user={user || { fullName: 'Nhân Viên', employeeCode: 'NV' }}
             locations={locations}
             onCaptureComplete={handleCaptureComplete}
             onCancel={() => setActiveModal(null)}
