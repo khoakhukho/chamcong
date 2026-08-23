@@ -1,7 +1,7 @@
 {
-  "name": "Chấm Công Caritas Đà Lạt",
-  "short_name": "Caritas Chấm Công",
-  "description": "Hệ thống webapp chấm công nội bộ qua ảnh chụp watermark & GPS - Caritas Giáo Phận Đà Lạt",
+  "name": "Caritas Đà Lạt - Cổng Thông Tin & Quản Trị",
+  "short_name": "CaritasDalat",
+  "description": "Hệ thống Cổng Thông Tin, Quản Lý Dự Án, Báo Cáo & Chấm Công Nội Bộ - Caritas Giáo Phận Đà Lạt",
   "start_url": "/chamcong",
   "display": "standalone",
   "orientation": "portrait",
@@ -9,13 +9,13 @@
   "theme_color": "#DC2626",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

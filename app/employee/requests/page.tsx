@@ -148,7 +148,7 @@ export default function EmployeeRequestsPage() {
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <EmployeeHeader user={user} />
 
-      <main className="flex-1 max-w-md w-full mx-auto px-4 py-5 space-y-4">
+      <main className="flex-1 max-w-md w-full mx-auto px-3.5 sm:px-4 py-4 sm:py-5 pb-28 md:pb-8 space-y-4">
         {/* Top Header & Toggle New Form Button */}
         <div className="flex items-center justify-between">
           <div>

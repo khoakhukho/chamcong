@@ -61,7 +61,7 @@ export default function LoginPage() {
             CARITAS ĐÀ LẠT
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-1">
-            Hệ Thống Chấm Công & Điểm Danh Nội Bộ
+            Cổng Dịch Vụ & Quản Trị Nội Bộ
           </p>
         </div>
 
@@ -137,7 +137,7 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-6 text-center text-xs text-slate-500">
-        &copy; {new Date().getFullYear()} Caritas Giáo Phận Đà Lạt. Hệ thống Chấm công nội bộ.
+        &copy; {new Date().getFullYear()} Caritas Giáo Phận Đà Lạt. Cổng Thông Tin & Quản Trị.
       </div>
     </div>
   );

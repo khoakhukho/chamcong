@@ -41,12 +41,12 @@ export default async function AdminLayout({
           <div className="flex items-center space-x-3">
             <NotificationBell />
             <div className="text-xs text-slate-400 font-medium hidden sm:block">
-              Hệ Thống Chấm Công Caritas Đà Lạt
+              Caritas Đà Lạt - Quản Trị Hệ Thống
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>

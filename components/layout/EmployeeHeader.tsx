@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import NotificationToaster from '@/components/notifications/NotificationToaster';
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
 
 interface EmployeeHeaderProps {
   user: {
@@ -64,7 +65,6 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
       return;
     }
 
-    // Limit to 5MB
     if (file.size > 5 * 1024 * 1024) {
       setSaveError('Kích thước ảnh không được vượt quá 5MB');
       return;
@@ -108,8 +108,8 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
   const navItems = [
     { href: '/chamcong', label: 'Chấm Công', icon: Camera },
     { href: '/employee/projects', label: 'Dự Án & Báo Cáo', icon: FolderKanban },
-    { href: '/employee/history', label: 'Lịch Sử', icon: History },
-    { href: '/employee/requests', label: 'Đơn Từ', icon: FileText },
+    { href: '/employee/requests', label: 'Đơn Từ & Nghỉ Phép', icon: FileText },
+    { href: '/employee/history', label: 'Lịch Sử Hoạt Động', icon: History },
   ];
 
   return (
@@ -117,30 +117,33 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
       {/* Floating Real-time Notification Toasts */}
       <NotificationToaster />
 
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+      {/* Mobile Native-Style Bottom Navigation Bar */}
+      <MobileBottomNav userRole={user.role} onOpenProfile={() => setShowProfileModal(true)} />
+
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         {/* Top Banner */}
-        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="max-w-4xl mx-auto px-3.5 py-2.5 flex items-center justify-between">
+          <Link href="/chamcong" className="flex items-center space-x-2.5 group">
             <img
               src="/logo.png"
               alt="Logo Caritas Đà Lạt"
-              className="w-10 h-10 rounded-xl object-contain shadow-xs border border-slate-100 bg-white p-0.5"
+              className="w-9 h-9 rounded-xl object-contain shadow-xs border border-slate-100 bg-white p-0.5 group-hover:scale-105 transition"
             />
             <div>
-              <h1 className="text-sm font-bold text-slate-900 leading-tight">
+              <h1 className="text-sm font-black text-slate-900 leading-tight tracking-tight">
                 CARITAS ĐÀ LẠT
               </h1>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Chấm Công Nội Bộ
+              <p className="text-[10px] text-slate-500 font-medium">
+                Cổng Dịch Vụ & Quản Trị
               </p>
             </div>
-          </div>
+          </Link>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2">
             {['ADMIN', 'ACCOUNTANT', 'MANAGER'].includes(user.role) && (
               <Link
                 href="/admin/dashboard"
-                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
+                className="hidden sm:inline-flex px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
               >
                 Quản Trị
               </Link>
@@ -153,96 +156,95 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
             <button
               onClick={() => setShowProfileModal(true)}
               title="Xem & Đổi ảnh đại diện"
-              className="relative w-8 h-8 rounded-full border border-slate-200 overflow-hidden bg-slate-100 hover:ring-2 hover:ring-red-500 transition shrink-0"
+              className="relative w-8 h-8 rounded-full border border-slate-200 overflow-hidden bg-slate-100 hover:ring-2 hover:ring-red-500 transition shrink-0 cursor-pointer"
             >
               {avatarPreview ? (
                 <img src={avatarPreview} alt={user.fullName} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-red-100 text-red-700 font-bold text-xs uppercase">
-                  {user.fullName.charAt(0)}
+                <div className="w-full h-full bg-red-700 text-white font-bold text-xs flex items-center justify-center">
+                  {user.fullName ? user.fullName.charAt(0) : 'U'}
                 </div>
               )}
             </button>
 
+            {/* Logout button (Desktop) */}
             <button
               onClick={handleLogout}
               title="Đăng xuất"
-              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+              className="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* User Info Strip */}
-        <div className="bg-slate-50 border-t border-slate-100 px-4 py-1.5 text-xs text-slate-600">
+        {/* User Identity Sub-bar */}
+        <div className="bg-slate-50/80 border-t border-slate-100 px-3.5 py-1.5 text-xs text-slate-600">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <button
-              onClick={() => setShowProfileModal(true)}
-              className="flex items-center space-x-2 text-left hover:text-red-600 transition"
-            >
-              <span className="font-semibold text-slate-800 hover:text-red-600">{user.fullName}</span>
-              <span className="text-[11px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-mono font-bold">
+            <div className="flex items-center space-x-2 truncate">
+              <span className="font-semibold text-slate-900 truncate">
+                {user.fullName}
+              </span>
+              <span className="font-mono text-[10px] text-slate-600 font-bold bg-slate-200/80 px-1.5 py-0.5 rounded">
                 {user.employeeCode}
               </span>
-            </button>
-            {user.department && (
-              <span className="text-[11px] text-slate-500 flex items-center space-x-1">
-                <Building2 className="w-3 h-3 text-slate-400" />
-                <span>{user.department}</span>
-              </span>
-            )}
+            </div>
+            <div className="text-[10px] text-slate-500 flex items-center space-x-1 shrink-0">
+              <Building2 className="w-3 h-3 text-slate-400" />
+              <span className="truncate max-w-[150px] sm:max-w-xs">{user.department || 'Văn phòng Caritas'}</span>
+            </div>
           </div>
         </div>
 
-        {/* Bottom Tab Bar (Mobile First Navigation) */}
-        <nav className="max-w-4xl mx-auto flex border-t border-slate-100">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex-1 py-2.5 flex items-center justify-center space-x-1.5 text-xs font-semibold transition border-b-2 ${
-                  isActive
-                    ? 'border-red-600 text-red-600 bg-red-50/50'
-                    : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        {/* Navigation Tabs (Desktop only - Mobile uses bottom nav) */}
+        <nav className="hidden md:flex bg-white border-t border-slate-100 px-4">
+          <div className="max-w-4xl mx-auto w-full flex space-x-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center space-x-1.5 py-2.5 px-3 text-xs font-semibold border-b-2 transition ${
+                    isActive
+                      ? 'border-red-600 text-red-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
       </header>
 
-      {/* Profile & Avatar Management Modal */}
+      {/* Profile & Avatar Modal */}
       {showProfileModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="relative max-w-sm w-full bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-                <User className="w-4 h-4 text-red-600" />
-                <span>Hồ Sơ & Ảnh Đại Diện Cá Nhân</span>
-              </h3>
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-red-600" />
+                <h3 className="text-sm font-bold text-slate-900">Hồ Sơ & Ảnh Đại Diện</h3>
+              </div>
               <button
                 onClick={() => setShowProfileModal(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Avatar Centered Preview */}
-            <div className="flex flex-col items-center space-y-3">
-              <div className="relative w-24 h-24 rounded-3xl border-4 border-slate-100 shadow-md overflow-hidden bg-slate-100 flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-3 py-2">
+              <div className="relative w-24 h-24 rounded-full border-4 border-slate-100 overflow-hidden bg-slate-100 shadow-md">
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="text-2xl font-black text-red-600 uppercase">
-                    {user.fullName.charAt(0)}
+                  <div className="w-full h-full bg-red-700 text-white font-black text-2xl flex items-center justify-center">
+                    {user.fullName ? user.fullName.charAt(0) : 'U'}
                   </div>
                 )}
               </div>
@@ -257,50 +259,63 @@ export default function EmployeeHeader({ user }: EmployeeHeaderProps) {
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center space-x-1.5 transition"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center space-x-1.5 transition cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5 text-red-600" />
                 <span>Chọn ảnh khuôn mặt mới</span>
               </button>
             </div>
 
-            {/* Info details */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-2 text-xs text-slate-600">
+            <div className="bg-slate-50 p-3 rounded-2xl text-xs space-y-1.5 border border-slate-100">
               <div className="flex justify-between">
-                <span className="text-slate-400">Họ và tên:</span>
-                <span className="font-bold text-slate-800">{user.fullName}</span>
+                <span className="text-slate-500">Họ và tên:</span>
+                <strong className="text-slate-800">{user.fullName}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Tên đăng nhập:</span>
-                <span className="font-mono font-bold text-slate-800">{user.employeeCode}</span>
+                <span className="text-slate-500">Mã nhân sự:</span>
+                <strong className="font-mono text-red-600">{user.employeeCode}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Phòng ban:</span>
-                <span className="font-medium text-slate-800">{user.department || 'Caritas Đà Lạt'}</span>
+                <span className="text-slate-500">Phòng ban:</span>
+                <strong className="text-slate-800">{user.department || 'Chung'}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Vai trò:</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800">
+                  {user.role}
+                </span>
               </div>
             </div>
 
             {saveSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center space-x-2">
+              <div className="p-2.5 bg-emerald-50 text-emerald-800 text-xs rounded-xl flex items-center space-x-2 border border-emerald-200">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Cập nhật ảnh đại diện thành công!</span>
+                <span>Đã lưu ảnh đại diện thành công!</span>
               </div>
             )}
 
             {saveError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs">
+              <div className="p-2.5 bg-red-50 text-red-800 text-xs rounded-xl border border-red-200">
                 {saveError}
               </div>
             )}
 
-            <button
-              onClick={handleSaveAvatar}
-              disabled={savingAvatar || !avatarPreview || avatarPreview === user.avatarUrl}
-              className="w-full py-3 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow-lg shadow-red-900/20"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{savingAvatar ? 'Đang lưu ảnh...' : 'Lưu Ảnh Đại Diện Mới'}</span>
-            </button>
+            <div className="flex items-center space-x-2 pt-2">
+              <button
+                onClick={handleSaveAvatar}
+                disabled={savingAvatar || !avatarPreview}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer"
+              >
+                {savingAvatar ? 'Đang lưu...' : 'LƯU ẢNH HỒ SƠ'}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="py-2.5 px-3 bg-slate-100 hover:bg-rose-50 text-rose-700 text-xs font-bold rounded-xl transition flex items-center space-x-1 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Đăng xuất</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

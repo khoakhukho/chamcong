@@ -262,7 +262,7 @@ export default function EmployeeProjectsPage() {
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <EmployeeHeader user={user || { fullName: 'Nhân Viên Caritas', employeeCode: 'NV', role: 'EMPLOYEE' }} />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3.5 sm:px-4 py-4 sm:py-6 pb-28 md:pb-8 space-y-5">
         {/* Top Title Banner */}
         <div className="bg-gradient-to-r from-red-800 to-slate-900 rounded-3xl p-5 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5">
