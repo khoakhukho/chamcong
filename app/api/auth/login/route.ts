@@ -13,12 +13,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const codeClean = employeeCode.trim().toUpperCase();
+    const codeRaw = employeeCode.trim();
+    const codeUpper = codeRaw.toUpperCase();
+    const codeLower = codeRaw.toLowerCase();
 
     await ensureDatabaseReady();
 
-    const user = await prisma.user.findUnique({
-      where: { employeeCode: codeClean },
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { employeeCode: codeRaw },
+          { employeeCode: codeUpper },
+          { employeeCode: codeLower },
+        ],
+      },
     });
 
     if (!user || !user.isActive) {
