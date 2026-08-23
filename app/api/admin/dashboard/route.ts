@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma, { ensureDatabaseReady } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    await ensureDatabaseReady();
     const user = await getCurrentUser();
     if (!user || user.role === 'EMPLOYEE') {
       return NextResponse.json({ error: 'Không có quyền truy cập quản trị' }, { status: 403 });

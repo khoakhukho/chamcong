@@ -33,8 +33,6 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
  * Self-healing DB initialization function for Vercel Serverless / Fresh Environments
  */
 export async function ensureDatabaseReady() {
-  if (globalForPrisma.isDbInitialized) return;
-
   try {
     // 1. Create tables if they don't exist
     await prisma.$executeRawUnsafe(`
